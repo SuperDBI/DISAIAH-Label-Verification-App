@@ -27,7 +27,7 @@ start_background() {
 if ! pgrep -f '[X]vfb :1' >/dev/null 2>&1; then
   rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
   start_background "$RUNTIME_DIR/secrev-xvfb.pid" "$RUNTIME_DIR/secrev-xvfb.log" \
-    Xvfb :1 -screen 0 1280x800x24 -nolisten tcp -noreset
+    Xvfb :1 -screen 0 1920x1080x24 -nolisten tcp -noreset
 fi
 
 # Wait briefly for Xvfb to accept local X clients, without exposing an X11 TCP listener.
@@ -35,6 +35,7 @@ for _ in {1..100}; do
   if DISPLAY=:1 xdpyinfo >/dev/null 2>&1; then
     break
   fi
+  sleep 0.1
 done
 if ! DISPLAY=:1 xdpyinfo >/dev/null 2>&1; then
   echo "Xvfb did not start on display :1; inspect /tmp/secrev-xvfb.log." >&2
@@ -63,10 +64,10 @@ cat > "$WEB_ROOT/index.html" <<'HTML'
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SecRev Codespaces Desktop</title>
-  <meta http-equiv="refresh" content="0; url=/vnc.html?autoconnect=true&amp;resize=remote&amp;path=websockify">
+  <meta http-equiv="refresh" content="0; url=/vnc.html?autoconnect=true&amp;resize=scale&amp;path=websockify">
 </head>
 <body>
-  <p>Opening the SecRev virtual desktop… If it does not open, <a href="/vnc.html?autoconnect=true&amp;resize=remote&amp;path=websockify">open noVNC</a>.</p>
+  <p>Opening the SecRev virtual desktop… If it does not open, <a href="/vnc.html?autoconnect=true&amp;resize=scale&amp;path=websockify">open noVNC</a>.</p>
 </body>
 </html>
 HTML
