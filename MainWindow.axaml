@@ -1,0 +1,244 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="using:SecRev.Models"
+        xmlns:shapes="using:Avalonia.Controls.Shapes"
+        x:Class="SecRev.MainWindow"
+        Title="Secure Review"
+        Width="1240" Height="900" MinWidth="980" MinHeight="680"
+        Background="#E6E8EA" Foreground="#111111">
+  <Window.Styles>
+    <Style Selector="TextBlock"><Setter Property="Foreground" Value="#111111"/></Style>
+    <Style Selector="TextBlock.heading"><Setter Property="FontSize" Value="25"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Foreground" Value="#111111"/></Style>
+    <Style Selector="TextBlock.sectionTitle"><Setter Property="FontSize" Value="16"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Foreground" Value="#111111"/></Style>
+    <Style Selector="TextBlock.eyebrow"><Setter Property="FontSize" Value="10"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Foreground" Value="#42464A"/></Style>
+    <Style Selector="Border.card"><Setter Property="Background" Value="#F7F8F9"/><Setter Property="BorderBrush" Value="#CFD3D6"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="18"/></Style>
+    <Style Selector="Button"><Setter Property="Background" Value="#E2E5E7"/><Setter Property="BorderBrush" Value="#111111"/><Setter Property="BorderThickness" Value="2"/><Setter Property="Foreground" Value="#111111"/></Style>
+    <Style Selector="Button:pointerover"><Setter Property="Background" Value="#D5E8FF"/><Setter Property="Foreground" Value="#111111"/><Setter Property="BorderBrush" Value="#005FCC"/><Setter Property="BorderThickness" Value="3"/></Style>
+    <Style Selector="Button:focus"><Setter Property="BorderBrush" Value="#005FCC"/><Setter Property="BorderThickness" Value="3"/></Style>
+    <Style Selector="Button:pressed"><Setter Property="Background" Value="#B8D7F5"/><Setter Property="Foreground" Value="#111111"/><Setter Property="BorderBrush" Value="#003E80"/><Setter Property="BorderThickness" Value="3"/></Style>
+    <Style Selector="Button:disabled"><Setter Property="Background" Value="#E5E7EB"/><Setter Property="Foreground" Value="#374151"/><Setter Property="BorderBrush" Value="#4B5563"/><Setter Property="BorderThickness" Value="2"/></Style>
+    <Style Selector="Button.nav"><Setter Property="Background" Value="#D5D8DB"/><Setter Property="Foreground" Value="#111111"/><Setter Property="BorderBrush" Value="#111111"/><Setter Property="BorderThickness" Value="1.5"/><Setter Property="CornerRadius" Value="7"/><Setter Property="Padding" Value="13,9"/><Setter Property="FontWeight" Value="SemiBold"/></Style>
+    <Style Selector="Button.nav.active"><Setter Property="Background" Value="#25282B"/><Setter Property="Foreground" Value="#FFFFFF"/><Setter Property="BorderBrush" Value="#111111"/><Setter Property="BorderThickness" Value="2"/></Style>
+    <Style Selector="Button.nav:pointerover"><Setter Property="Background" Value="#D5E8FF"/><Setter Property="Foreground" Value="#111111"/><Setter Property="BorderBrush" Value="#005FCC"/><Setter Property="BorderThickness" Value="3"/></Style>
+    <Style Selector="Button.nav.active:pointerover"><Setter Property="Background" Value="#3B4A5C"/><Setter Property="Foreground" Value="#FFFFFF"/><Setter Property="BorderBrush" Value="#80BFFF"/><Setter Property="BorderThickness" Value="3"/></Style>
+    <Style Selector="Button.action"><Setter Property="Background" Value="#25282B"/><Setter Property="Foreground" Value="#FFFFFF"/><Setter Property="BorderBrush" Value="#111111"/><Setter Property="BorderThickness" Value="2"/><Setter Property="CornerRadius" Value="7"/><Setter Property="Padding" Value="13,9"/><Setter Property="FontWeight" Value="SemiBold"/></Style>
+    <Style Selector="Button.action:pointerover"><Setter Property="Background" Value="#3B4A5C"/><Setter Property="Foreground" Value="#FFFFFF"/><Setter Property="BorderBrush" Value="#80BFFF"/><Setter Property="BorderThickness" Value="3"/></Style>
+    <Style Selector="Button.action:pressed"><Setter Property="Background" Value="#17202B"/><Setter Property="Foreground" Value="#FFFFFF"/><Setter Property="BorderBrush" Value="#80BFFF"/><Setter Property="BorderThickness" Value="3"/></Style>
+    <Style Selector="Button.action:disabled"><Setter Property="Background" Value="#E5E7EB"/><Setter Property="Foreground" Value="#374151"/><Setter Property="BorderBrush" Value="#4B5563"/><Setter Property="BorderThickness" Value="2"/></Style>
+    <Style Selector="Button.secondary"><Setter Property="Background" Value="#E2E5E7"/><Setter Property="Foreground" Value="#111111"/><Setter Property="BorderBrush" Value="#111111"/><Setter Property="BorderThickness" Value="1.5"/><Setter Property="CornerRadius" Value="7"/><Setter Property="Padding" Value="11,8"/></Style>
+    <Style Selector="Button.secondary:pointerover"><Setter Property="Background" Value="#D5E8FF"/><Setter Property="Foreground" Value="#111111"/><Setter Property="BorderBrush" Value="#005FCC"/><Setter Property="BorderThickness" Value="3"/></Style>
+    <Style Selector="Button.secondary:pressed"><Setter Property="Background" Value="#B8D7F5"/><Setter Property="Foreground" Value="#111111"/><Setter Property="BorderBrush" Value="#003E80"/><Setter Property="BorderThickness" Value="3"/></Style>
+    <Style Selector="Button.secondary:disabled"><Setter Property="Background" Value="#E5E7EB"/><Setter Property="Foreground" Value="#374151"/><Setter Property="BorderBrush" Value="#4B5563"/><Setter Property="BorderThickness" Value="2"/></Style>
+    <Style Selector="CheckBox"><Setter Property="Foreground" Value="#111111"/></Style>
+    <Style Selector="CheckBox:pointerover"><Setter Property="Foreground" Value="#111111"/></Style>
+    <Style Selector="CheckBox:checked"><Setter Property="Foreground" Value="#111111"/></Style>
+    <Style Selector="CheckBox:disabled"><Setter Property="Foreground" Value="#374151"/></Style>
+    <Style Selector="CheckBox /template/ Border#NormalRectangle"><Setter Property="Background" Value="#FFFFFF"/><Setter Property="BorderBrush" Value="#111111"/><Setter Property="BorderThickness" Value="2"/></Style>
+    <Style Selector="CheckBox:pointerover /template/ Border#NormalRectangle"><Setter Property="Background" Value="#E8F2FF"/><Setter Property="BorderBrush" Value="#005FCC"/><Setter Property="BorderThickness" Value="2"/></Style>
+    <Style Selector="CheckBox:checked /template/ Border#NormalRectangle"><Setter Property="Background" Value="#005FCC"/><Setter Property="BorderBrush" Value="#003E80"/><Setter Property="BorderThickness" Value="2"/></Style>
+    <Style Selector="CheckBox:checked /template/ Path#CheckGlyph"><Setter Property="Fill" Value="#FFFFFF"/><Setter Property="Opacity" Value="1"/></Style>
+    <Style Selector="CheckBox:disabled /template/ Border#NormalRectangle"><Setter Property="Background" Value="#E5E7EB"/><Setter Property="BorderBrush" Value="#4B5563"/><Setter Property="BorderThickness" Value="2"/></Style>
+    <Style Selector="CheckBox:disabled:checked /template/ Border#NormalRectangle"><Setter Property="Background" Value="#4B5563"/><Setter Property="BorderBrush" Value="#374151"/></Style>
+    <Style Selector="CheckBox:disabled:checked /template/ Path#CheckGlyph"><Setter Property="Fill" Value="#FFFFFF"/><Setter Property="Opacity" Value="1"/></Style>
+    <Style Selector="CheckBox /template/ ContentPresenter"><Setter Property="Foreground" Value="#000000"/></Style>
+    <Style Selector="CheckBox /template/ ContentPresenter TextBlock"><Setter Property="Foreground" Value="#000000"/></Style>
+    <Style Selector="Button.stage"><Setter Property="Background" Value="#E2E5E7"/><Setter Property="Foreground" Value="#111111"/><Setter Property="BorderBrush" Value="#111111"/><Setter Property="BorderThickness" Value="1.5"/><Setter Property="CornerRadius" Value="7"/><Setter Property="Padding" Value="12,9"/><Setter Property="FontWeight" Value="SemiBold"/></Style>
+    <Style Selector="TextBox"><Setter Property="Foreground" Value="#111111"/><Setter Property="CornerRadius" Value="6"/><Setter Property="BorderBrush" Value="#BFC4C8"/><Setter Property="Background" Value="White"/><Setter Property="Padding" Value="9"/></Style>
+    <Style Selector="ComboBox"><Setter Property="Foreground" Value="#111111"/><Setter Property="CornerRadius" Value="6"/><Setter Property="BorderBrush" Value="#BFC4C8"/><Setter Property="Background" Value="White"/></Style>
+    <Style Selector="Button.stage:pointerover"><Setter Property="Background" Value="#D5E8FF"/><Setter Property="Foreground" Value="#111111"/><Setter Property="BorderBrush" Value="#005FCC"/><Setter Property="BorderThickness" Value="3"/></Style>
+  </Window.Styles>
+  <Grid RowDefinitions="Auto,*,Auto" Margin="24,18,24,12" RowSpacing="12">
+    <Grid Grid.Row="0" RowDefinitions="Auto,*,Auto" RowSpacing="8">
+      <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+        <TextBlock Text="Secure Review" Classes="heading"/>
+        <TextBlock x:Name="SessionStatus" Grid.Column="1" Text="Locked" VerticalAlignment="Center" FontWeight="SemiBold"/>
+      </Grid>
+      <WrapPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Top" ItemSpacing="8" LineSpacing="8">
+        <Button x:Name="NavUnlock" Classes="nav active" Tag="Unlock" Content="1 · Unlock" Click="OnNavigateClick"/>
+        <Button x:Name="NavWorkspace" Classes="nav" Tag="Workspace" Content="2 · Workspace" Click="OnNavigateClick"/>
+        <Button x:Name="NavInspect" Classes="nav" Tag="Inspect" Content="3 · Inspect" Click="OnNavigateClick"/>
+        <Button x:Name="NavReview" Classes="nav" Tag="Review" Content="4 · Review" Click="OnNavigateClick"/>
+        <Button x:Name="NavProtect" Classes="nav" Tag="Protect" Content="5 · Protect" Click="OnNavigateClick"/>
+        <Button x:Name="NavComplete" Classes="nav" Tag="Complete" Content="6 · Complete" Click="OnNavigateClick"/>
+      </WrapPanel>
+      <StackPanel Grid.Row="2" Spacing="5" Margin="0,7,0,0" VerticalAlignment="Bottom">
+        <Grid ColumnDefinitions="*,Auto"><TextBlock x:Name="ProgressStepText" Text="Step 1 of 6 · Unlock vault" FontWeight="Bold"/><TextBlock Grid.Column="1" Text="WORKFLOW PROGRESS" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right"/></Grid>
+        <ProgressBar x:Name="WorkflowProgress" Minimum="0" Maximum="5" Value="0" Height="8" Background="#C9CDD0" Foreground="#25282B"/>
+        <Grid ColumnDefinitions="*,*,*,*,*,*"><TextBlock Text="Unlock" FontSize="10"/><TextBlock Grid.Column="1" Text="Import" HorizontalAlignment="Center" FontSize="10"/><TextBlock Grid.Column="2" Text="Inspect" HorizontalAlignment="Center" FontSize="10"/><TextBlock Grid.Column="3" Text="Review" HorizontalAlignment="Center" FontSize="10"/><TextBlock Grid.Column="4" Text="Protect" HorizontalAlignment="Center" FontSize="10"/><TextBlock Grid.Column="5" Text="Complete" HorizontalAlignment="Right" FontSize="10"/></Grid>
+      </StackPanel>
+    </Grid>
+
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+      <Grid>
+        <StackPanel x:Name="UnlockScreen" Spacing="14">
+          <TextBlock Text="Unlock the local vault" Classes="sectionTitle"/>
+          <Border Classes="card">
+            <StackPanel Spacing="14">
+              <TextBlock Text="Unlock the encrypted vault, then authenticate with an individual local account. The account's stored role determines access." TextWrapping="Wrap"/>
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <TextBox x:Name="PassphraseBox" PasswordChar="●" PlaceholderText="Vault passphrase (12+ characters)"/>
+                <Button x:Name="UnlockButton" Grid.Column="1" Classes="action" Content="Unlock vault" Click="OnUnlockClick"/>
+              </Grid>
+              <StackPanel x:Name="AccountSessionPanel" IsVisible="False" Spacing="10">
+                <TextBlock x:Name="AccountPrompt" Text="Account sign-in" FontWeight="SemiBold"/>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                  <TextBox x:Name="AccountNameBox" PlaceholderText="Account name"/>
+                  <TextBox x:Name="AccountPasswordBox" Grid.Column="1" PasswordChar="●" PlaceholderText="Account password (12+ characters)"/>
+                </Grid>
+                <TextBox x:Name="BootstrapPasswordConfirmBox" IsVisible="False" PasswordChar="●" PlaceholderText="Confirm initial Custodian password"/>
+                <TextBox x:Name="BootstrapTokenBox" IsVisible="False" PasswordChar="●" PlaceholderText="One-time external token (also supplied as SECREV_BOOTSTRAP_TOKEN)"/>
+                <Button x:Name="AccountActionButton" Classes="action" HorizontalAlignment="Left" Content="Sign in" Click="OnAccountActionClick"/>
+              </StackPanel>
+              <Border Background="#ECEDEF" CornerRadius="7" Padding="12"><TextBlock Text="Local workflow controls and signatures are tamper-evident demonstrations, not audit-grade logging or a strong security boundary. They can be bypassed or rewritten by someone controlling this app, device, or vault. The workflow is offline and makes no remote identity or timestamp attestation." TextWrapping="Wrap"/></Border>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <StackPanel x:Name="WorkspaceScreen" IsVisible="False" Spacing="14">
+          <TextBlock Text="Workspace" Classes="sectionTitle"/>
+          <Border Classes="card">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+              <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="4"><TextBlock Text="Documents" Classes="eyebrow"/><TextBlock x:Name="DocumentCount" Text="No documents loaded" FontWeight="SemiBold"/></StackPanel>
+                  <Button Grid.Column="1" Classes="secondary" Content="Lock / switch user" Click="OnLogoutClick"/>
+                </Grid>
+                <WrapPanel Grid.Row="1" Orientation="Horizontal" ItemSpacing="8" LineSpacing="6">
+                  <Button x:Name="ManageRecordButton" Classes="secondary" Content="Manage record" Click="OnManageRecordClick"/>
+                  <Button x:Name="ManageAccountsButton" Classes="secondary" Content="Manage accounts" Click="OnManageAccountsClick"/>
+                  <Button x:Name="ImportDocumentButton" Classes="action" Content="＋ Import document" Click="OnAddDocumentClick"/>
+                  <Button x:Name="AddToQueueButton" Classes="secondary" Content="Add selected to review queue" Click="OnAddToQueueClick" ToolTip.Tip="Add an eligible draft or submitted record to the session review queue."/>
+                  <Button x:Name="RemoveFromQueueButton" Classes="secondary" Content="Remove from queue" Click="OnRemoveFromQueueClick"/>
+                  <Button x:Name="CustodianReviewButton" Classes="action" Content="Review selected submission" IsVisible="False" Click="OnCustodianReviewClick"/>
+                  <Button x:Name="BulkDeleteRecordsButton" Classes="secondary" Content="Delete selected vault records" IsVisible="False" Click="OnBulkDeleteRecordsClick"/>
+                </WrapPanel>
+              </Grid>
+              <WrapPanel Grid.Row="1" Orientation="Horizontal" ItemSpacing="8" LineSpacing="6">
+                <Button x:Name="ExportPermanentRecordsButton" Classes="secondary" Content="Export permanent records · plaintext originals + encrypted bundle" IsVisible="False" Click="OnExportPermanentRecordsClick"/>
+                <Button x:Name="ImportRecordsFolderButton" Classes="secondary" Content="Import records folder" IsVisible="False" Click="OnImportRecordsFolderClick"/>
+                <TextBlock Text="Original files export under original names; analysis/review remains encrypted in record packages. Protect plaintext exports." VerticalAlignment="Center" TextWrapping="Wrap"/>
+              </WrapPanel>
+              <CheckBox x:Name="AutoScanPdfAfterImportCheck" Grid.Row="2" Foreground="#000000" Content="Scan PDF after import" ToolTip.Tip="Optional. Import remains encrypted; the app starts local ClamAV/PDF services and scans immediately after import."/>
+              <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <StackPanel Spacing="5"><TextBlock Text="Session Work Queue · resets on login/restart" Classes="eyebrow"/><ListBox x:Name="DocumentsList" Height="170" Background="White" BorderBrush="#C6CBCF" SelectionChanged="OnDocumentSelected">
+                  <ListBox.ItemTemplate><DataTemplate x:DataType="models:VaultDocument"><StackPanel Margin="4" Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><shapes:Ellipse Width="12" Height="12" Fill="{Binding CustodianReviewStatusBrush}" Stroke="#303030" StrokeThickness="1" VerticalAlignment="Center" ToolTip.Tip="{Binding CustodianReviewStatusLabel}"/><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/></StackPanel><TextBlock Text="{Binding WorkflowStatus}" FontSize="10" TextWrapping="Wrap"/><TextBlock Text="{Binding DuplicateResolution}" FontSize="10" FontWeight="Bold"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+                </ListBox></StackPanel>
+                <StackPanel Grid.Column="1" Spacing="5"><TextBlock x:Name="VaultRecordsHeader" Text="Persistent Records Vault · remains across sessions" Classes="eyebrow"/><ListBox x:Name="VaultRecordsList" Height="170" IsVisible="False" Background="White" BorderBrush="#C6CBCF" SelectionChanged="OnVaultRecordSelected">
+                  <ListBox.ItemTemplate><DataTemplate x:DataType="models:VaultDocument"><StackPanel Margin="4" Spacing="2"><CheckBox Foreground="#000000" Content="Select for Custodian deletion" IsVisible="{Binding CanSelectForBulkDelete}" IsChecked="{Binding IsSelectedForBulkDelete, Mode=TwoWay}" Click="OnRecordBulkSelectionChanged"/><StackPanel Orientation="Horizontal" Spacing="6"><shapes:Ellipse Width="12" Height="12" Fill="{Binding CustodianReviewStatusBrush}" Stroke="#303030" StrokeThickness="1" VerticalAlignment="Center" ToolTip.Tip="{Binding CustodianReviewStatusLabel}"/><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/></StackPanel><TextBlock Text="{Binding WorkflowStatus}" FontSize="10" TextWrapping="Wrap"/><TextBlock Text="{Binding DuplicateResolution}" FontSize="10" FontWeight="Bold"/><TextBlock Text="{Binding IsPermanentlyStored, StringFormat='Permanent storage: {0}'}" FontSize="10"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+                </ListBox></StackPanel>
+                <StackPanel Grid.Column="2" Spacing="10">
+                  <TextBlock Text="Selected record" Classes="eyebrow"/><StackPanel Orientation="Horizontal" Spacing="7"><shapes:Ellipse x:Name="SelectedRecordStatusDot" Width="14" Height="14" Fill="#B7791F" Stroke="#303030" StrokeThickness="1" VerticalAlignment="Center"/><TextBlock x:Name="SelectedDocumentTitle" Text="No document selected" Classes="sectionTitle" TextWrapping="Wrap"/></StackPanel>
+                  <TextBlock x:Name="PolicyStatus" Text="Authenticate to open access" TextWrapping="Wrap"/>
+                  <TextBlock x:Name="RecordKeyStatus" Text="Record key: —" TextWrapping="Wrap"/>
+                  <TextBlock x:Name="IdentityStampStatus" Text="Identity stamp: pending" TextWrapping="Wrap"/>
+                </StackPanel>
+              </Grid>
+              <WrapPanel Grid.Row="4" Orientation="Horizontal" ItemSpacing="14" LineSpacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="5"><shapes:Ellipse Width="10" Height="10" Fill="Goldenrod" Stroke="#303030" StrokeThickness="1"/><TextBlock Text="Analyst record · awaiting Custodian review" FontSize="10"/></StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="5"><shapes:Ellipse Width="10" Height="10" Fill="ForestGreen" Stroke="#303030" StrokeThickness="1"/><TextBlock Text="Custodian approved" FontSize="10"/></StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="5"><shapes:Ellipse Width="10" Height="10" Fill="Firebrick" Stroke="#303030" StrokeThickness="1"/><TextBlock Text="Custodian rejected" FontSize="10"/></StackPanel>
+              </WrapPanel>
+            </Grid>
+          </Border>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+            <Border Classes="card"><StackPanel Spacing="10"><TextBlock Text="Review timer" Classes="sectionTitle"/><TextBlock Text="Starts automatically when an Analyst imports or selects an active draft; stops on submission or a Custodian decision. Elapsed duration uses a monotonic clock; UTC values are metadata." TextWrapping="Wrap"/><TextBlock x:Name="TimerDisplay" Text="00:00:00" FontSize="20" FontWeight="Bold"/><TextBlock x:Name="TimerStatus" Text="Timer starts automatically for an active Analyst draft"/></StackPanel></Border>
+            <Border Grid.Column="1" Classes="card"><StackPanel Spacing="8"><TextBlock Text="Access policy" Classes="sectionTitle"/><TextBlock Text="The authenticated account role controls local workflow permissions. Custodian access is required for account administration, record priority changes, deletion, and final signing." TextWrapping="Wrap"/></StackPanel></Border>
+          </Grid>
+          <Border Classes="card"><StackPanel Spacing="6"><TextBlock Text="Runtime application safeguards · best effort" Classes="sectionTitle"/><TextBlock x:Name="ClipboardProtectionStatus" Text="Clipboard policy initializes when the window opens." TextWrapping="Wrap"/><TextBlock x:Name="CaptureProtectionStatus" Text="Screen capture protection status pending." TextWrapping="Wrap"/><TextBlock Text="Release code hardening: private policy/native-wrapper symbol renaming is available in the release pipeline; this running process cannot attest that it was applied." TextWrapping="Wrap"/><TextBlock Text="No system-wide keyboard or clipboard monitoring is used. Client-side controls cannot prevent a device owner from modifying the process, using external capture equipment, or bypassing OS capture paths." TextWrapping="Wrap"/></StackPanel></Border>
+          <Border x:Name="DuplicateReviewPanel" Classes="card" IsVisible="False"><StackPanel Spacing="10"><TextBlock Text="Custodian duplicate resolution · after Analyst Stage 3 submission" Classes="sectionTitle"/><TextBlock Text="Analyst analysis and submission occur before this decision. Confirming the duplicate signs and finalizes it as a permanent vault record; it does not delete either record. Marking a false positive signs the resolution and then requires a separate Stage 4 approve/reject/return decision." TextWrapping="Wrap"/><WrapPanel Orientation="Horizontal" ItemSpacing="8"><Button x:Name="ConfirmDuplicateButton" Classes="secondary" Tag="ConfirmedDuplicate" Content="Confirm duplicate · Finalize" Click="OnDuplicateResolutionClick"/><Button x:Name="MarkNotDuplicateButton" Classes="action" Tag="NotDuplicate" Content="Mark not duplicate" Click="OnDuplicateResolutionClick"/></WrapPanel></StackPanel></Border>
+        </StackPanel>
+
+        <StackPanel x:Name="InspectScreen" IsVisible="False" Spacing="14">
+          <TextBlock Text="Inspect and analyze" Classes="sectionTitle"/>
+          <Border Classes="card"><StackPanel Spacing="12">
+            <TextBlock Text="Text files support limited local analysis. PDFs are scanned locally with ClamAV before PdfPig text/form extraction and embedded-image OCR. Selectable input, Tesseract OCR differences, image previews, and analysis are shown in separate panes for human review. Azure remains optional." TextWrapping="Wrap"/>
+            <TextBlock x:Name="PdfParserStatus" Text="Local PDF services start automatically when you scan a PDF. No endpoint or token setup is required." TextWrapping="Wrap"/>
+            <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8">
+              <Button Classes="secondary" Content="Preview / report" Click="OnPreviewClick"/><Button Classes="secondary" Content="Static scan report" Click="OnExploitScanClick"/><Button x:Name="PdfImageExtractionButton" Classes="secondary" IsEnabled="False" Content="Scan PDF &amp; extract images" Click="OnImageExtractionClick"/><Button x:Name="ComparePdfFormsButton" Classes="secondary" IsEnabled="False" Content="Compare with blank form" Click="OnComparePdfFormsClick"/><Button Classes="secondary" Content="View text data" Click="OnViewTextDataClick"/><Button Classes="action" Content="Analyze and match" Click="OnAnalyzeMatchClick"/><Button x:Name="ProceedToCustodianReviewButton" Classes="action" IsVisible="False" Content="Proceed to Custodian Review · review step" Click="OnProceedToCustodianReviewClick"/><Button x:Name="SavePdfForLaterButton" Classes="secondary" IsVisible="False" Content="Save For Later · start next import" Click="OnSavePdfForLaterClick" ToolTip.Tip="Retain this encrypted record and its review progress for later; remove it from this session queue and start another import."/>
+            </WrapPanel>
+            <TextBlock Text="For a filled PDF, choose Compare with blank form to see OCR text and changed form values absent from the blank baseline. Analyze and match searches selectable text, form names/values, and full embedded-image OCR." TextWrapping="Wrap"/>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10"><TextBox x:Name="MatchQueryBox" PlaceholderText="Exact term in extracted text, form fields &amp; embedded-image OCR (1–256 chars)"/><TextBlock x:Name="AnalysisStatus" Grid.Column="1" Text="Analysis not run" VerticalAlignment="Center"/></Grid>
+          </StackPanel></Border>
+          <Border Classes="card"><Grid RowDefinitions="Auto,Auto,Auto,*" Height="640" RowSpacing="10">
+            <Grid ColumnDefinitions="*,Auto"><StackPanel Spacing="4"><TextBlock Text="Human verification workspace" Classes="sectionTitle"/><TextBlock Text="For PDFs, extracted content appears side by side after a clean local scan. Images are thumbnails; source PDF pages are not rendered." TextWrapping="Wrap"/></StackPanel><TextBlock x:Name="ScanResult" Grid.Column="1" Text="Scan: pending" VerticalAlignment="Center" FontWeight="SemiBold"/></Grid>
+            <StackPanel Grid.Row="1" Spacing="8">
+              <WrapPanel Orientation="Horizontal" ItemSpacing="18" LineSpacing="6">
+                <CheckBox x:Name="ImagesVerifiedCheck" Foreground="#000000" Content="Images reviewed" MinWidth="150"/>
+              </WrapPanel>
+              <Grid ColumnDefinitions="160,*,*" ColumnSpacing="10">
+                <TextBox x:Name="AccuracyBox" PlaceholderText="Accuracy 0–100%"/>
+                <TextBox x:Name="ReviewNotesBox" Grid.Column="1" PlaceholderText="Human review notes"/>
+                <TextBlock x:Name="VerificationStatus" Grid.Column="2" Text="Verification pending" VerticalAlignment="Center" TextWrapping="Wrap"/>
+              </Grid>
+            </StackPanel>
+            <StackPanel x:Name="PdfVisualChecklistPanel" Grid.Row="2" IsVisible="False" Spacing="4">
+              <TextBlock Text="PDF image ↔ form-field visual confirmation" FontWeight="Bold"/>
+              <TextBlock Text="Check each item only after confirming it is visible and legible in the image preview and matches the extracted OCR/form data. These are Analyst attestations, not automatic determinations." TextWrapping="Wrap"/>
+              <WrapPanel Orientation="Horizontal" ItemSpacing="14" LineSpacing="5">
+                <CheckBox x:Name="PdfBrandNameCheck" Foreground="#000000" Content="BRAND NAME" IsCheckedChanged="OnPdfVisualChecklistChanged"/>
+                <CheckBox x:Name="PdfAlcoholVolumeCheck" Foreground="#000000" Content="ALC./VOL mL" IsCheckedChanged="OnPdfVisualChecklistChanged"/>
+                <CheckBox x:Name="PdfGovernmentWarningCheck" Foreground="#000000" Content="GOVERNMENT WARNING" IsCheckedChanged="OnPdfVisualChecklistChanged"/>
+                <CheckBox x:Name="PdfVisibleCheck" Foreground="#000000" Content="VISIBLE" IsCheckedChanged="OnPdfVisualChecklistChanged"/>
+              </WrapPanel>
+            </StackPanel>
+            <Grid Grid.Row="3" ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
+              <Border Background="White" BorderBrush="#CFD3D6" BorderThickness="1" CornerRadius="7" Padding="10"><Grid RowDefinitions="Auto,*"><TextBlock Text="SELECTABLE INPUT TEXT &amp; FORM FIELDS" Classes="eyebrow"/><ScrollViewer Grid.Row="1" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto"><TextBlock x:Name="TextDataBox" TextWrapping="Wrap"/></ScrollViewer></Grid></Border>
+              <Border Grid.Column="1" Background="White" BorderBrush="#CFD3D6" BorderThickness="1" CornerRadius="7" Padding="10"><Grid RowDefinitions="Auto,*"><TextBlock Text="TESSERACT OCR · EMBEDDED IMAGES" Classes="eyebrow"/><ScrollViewer Grid.Row="1" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto"><TextBlock x:Name="PdfOcrDataBox" TextWrapping="Wrap"/></ScrollViewer></Grid></Border>
+              <Border Grid.Column="2" Background="White" BorderBrush="#CFD3D6" BorderThickness="1" CornerRadius="7" Padding="10"><Grid RowDefinitions="Auto,*"><TextBlock Text="EXTRACTED IMAGE PREVIEWS · ZOOM" Classes="eyebrow"/><ScrollViewer Grid.Row="1" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto"><WrapPanel x:Name="ExtractedPdfImagesPanel" ItemSpacing="10" LineSpacing="10"/></ScrollViewer></Grid></Border>
+              <Border Grid.Column="3" Background="White" BorderBrush="#CFD3D6" BorderThickness="1" CornerRadius="7" Padding="10"><Grid RowDefinitions="Auto,*,Auto"><TextBlock Text="ANALYSIS REPORT" Classes="eyebrow"/><ScrollViewer Grid.Row="1" Margin="0,8,0,0" VerticalScrollBarVisibility="Auto"><TextBlock x:Name="AnalysisReportText" TextWrapping="Wrap"/></ScrollViewer><Button x:Name="ProceedToReviewButton" Grid.Row="2" Classes="action" Content="Proceed to Review" IsVisible="False" Click="OnProceedToReviewClick" Margin="0,8,0,0"/></Grid></Border>
+            </Grid>
+          </Grid></Border>
+          <TextBox x:Name="AnalysisDataBox" IsVisible="False"/>
+        </StackPanel>
+
+        <StackPanel x:Name="ReviewScreen" IsVisible="False" Spacing="14">
+          <TextBlock Text="Human review" Classes="sectionTitle"/>
+          <Border Classes="card"><StackPanel Spacing="14">
+            <TextBlock Text="Final visual comparison only. Checklist and analysis controls remain on the previous Inspect workspace." TextWrapping="Wrap"/>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,*" Height="460">
+              <TextBlock Text="TESSERACT OCR · EMBEDDED IMAGE TEXT" Classes="eyebrow"/><TextBlock Grid.Column="1" Text="EMBEDDED IMAGE PREVIEWS" Classes="eyebrow"/>
+              <Border Grid.Row="1" Background="White" Padding="10"><ScrollViewer><TextBlock x:Name="ReviewOcrText" TextWrapping="Wrap"/></ScrollViewer></Border>
+              <Border Grid.Row="1" Grid.Column="1" Background="White" Padding="10"><ScrollViewer><WrapPanel x:Name="ReviewImagesPanel" ItemSpacing="8" LineSpacing="8"/></ScrollViewer></Border>
+            </Grid>
+            <CheckBox x:Name="ConfirmVisualInspectionCheck" Foreground="#000000" Content="Confirm visual inspection" IsCheckedChanged="OnVisualInspectionConfirmedChanged" ToolTip.Tip="Confirm that the embedded-image OCR was reviewed against the image previews."/>
+            <TextBlock x:Name="AnalystVisualAttestationStatus" IsVisible="False" TextWrapping="Wrap"/>
+            <CheckBox x:Name="CustodianVisualInspectionCheck" Foreground="#000000" IsVisible="False" IsCheckedChanged="OnCustodianVisualInspectionChanged" Content="Custodian: confirm visual inspection for Stage 4 decision" ToolTip.Tip="Confirm that the Analyst's OCR and image evidence were visually inspected before the persisted Stage 4 decision."/>
+            <TextBlock x:Name="EncryptReviewStatus" Text="Confirm visual inspection. The encrypt action also requires completed review checks, match, accuracy, and notes from Inspect." TextWrapping="Wrap"/>
+            <Button x:Name="EncryptReviewButton" Classes="action" Content="Confirm review and Encrypt · Stage 2" IsEnabled="False" Click="OnEncryptStageTwoClick" HorizontalAlignment="Left"/>
+            <Button x:Name="ProceedToCustodianDecisionButton" Classes="action" IsVisible="False" IsEnabled="False" Content="Proceed to Custodian Decision · Stage 4 signature" Click="OnProceedToCustodianDecisionClick" HorizontalAlignment="Left"/>
+          </StackPanel></Border>
+        </StackPanel>
+
+        <StackPanel x:Name="ProtectScreen" IsVisible="False" Spacing="14">
+          <TextBlock Text="Encrypt and finalize" Classes="sectionTitle"/>
+          <Border Classes="card"><StackPanel Spacing="14">
+            <TextBlock Text="Stage 1 encrypts original bytes immediately on import. Stage 2 separately encrypts the completed review. Stage 3 is the Analyst completion signature at submission. Stage 4 is the Custodian decision/resolution signature and marks a final record permanent." TextWrapping="Wrap"/>
+            <TextBlock Text="The imported source and review are already encrypted at Stages 1 and 2. Re-enter your Analyst password to finalize and sign Stage 3." TextWrapping="Wrap"/>
+            <Button x:Name="StageThreeButton" Classes="action" Content="Finalize and Sign · Stage 3" Click="OnSubmitReviewStageThreeClick" HorizontalAlignment="Left"/>
+            <StackPanel x:Name="CustodianDecisionPanel" IsVisible="False" Spacing="10">
+              <TextBlock Text="Custodian decision · signs persisted Stage 4 (valid Stage 3 submissions only)" Classes="sectionTitle"/>
+              <TextBox x:Name="CustodianDecisionNoteBox" IsEnabled="False" AcceptsReturn="True" MinHeight="70" TextWrapping="Wrap" PlaceholderText="Required decision note or reason (5–4,000 characters)"/>
+              <TextBox x:Name="CustodianPasswordBox" IsEnabled="False" PasswordChar="●" PlaceholderText="Re-enter Custodian account password to authorize and sign"/>
+              <WrapPanel Orientation="Horizontal" ItemSpacing="8">
+                <Button x:Name="CustodianApproveButton" Classes="action" Tag="Approved" Content="Approve" IsEnabled="False" Click="OnCustodianDecisionClick"/>
+                <Button x:Name="CustodianRejectButton" Classes="secondary" Tag="Rejected" Content="Reject" IsEnabled="False" Click="OnCustodianDecisionClick"/>
+                <Button x:Name="CustodianReturnButton" Classes="secondary" Tag="ReturnedForReview" Content="Return for further review" IsEnabled="False" Click="OnCustodianDecisionClick"/>
+              </WrapPanel>
+            </StackPanel>
+          </StackPanel></Border>
+        </StackPanel>
+
+        <StackPanel x:Name="CompleteScreen" IsVisible="False" Spacing="14">
+          <TextBlock Text="Completion and activity" Classes="sectionTitle"/>
+          <Border Classes="card"><StackPanel Spacing="10"><TextBlock Text="Record summary" Classes="sectionTitle"/><TextBlock x:Name="CompletionSummary" Text="Select a record to view its workflow status." TextWrapping="Wrap"/><TextBlock Text="Local signatures and encrypted-vault records can make casual edits detectable, but the signing keys and records are controlled by this application and vault. They are not audit-grade evidence, trusted identity, or trusted timestamps." TextWrapping="Wrap"/></StackPanel></Border>
+          <Border Classes="card"><StackPanel Spacing="10"><TextBlock Text="Final Analyst review · input, OCR, image, analysis" Classes="sectionTitle"/><Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10" RowDefinitions="Auto,*" Height="300"><TextBlock Text="SELECTABLE INPUT / FORM DIFFERENCES" Classes="eyebrow"/><TextBlock Grid.Column="1" Text="EMBEDDED-IMAGE OCR DIFFERENCES" Classes="eyebrow"/><TextBlock Grid.Column="2" Text="IMAGE PREVIEW" Classes="eyebrow"/><TextBlock Grid.Column="3" Text="ANALYSIS" Classes="eyebrow"/><Border Grid.Row="1" Background="White" Padding="8"><ScrollViewer><TextBlock x:Name="CompleteInputText" TextWrapping="Wrap"/></ScrollViewer></Border><Border Grid.Row="1" Grid.Column="1" Background="White" Padding="8"><ScrollViewer><TextBlock x:Name="CompleteOcrText" TextWrapping="Wrap"/></ScrollViewer></Border><Border Grid.Row="1" Grid.Column="2" Background="White" Padding="8"><ScrollViewer><WrapPanel x:Name="CompleteImagesPanel" ItemSpacing="8" LineSpacing="8"/></ScrollViewer></Border><Border Grid.Row="1" Grid.Column="3" Background="White" Padding="8"><ScrollViewer><TextBlock x:Name="CompleteAnalysisText" TextWrapping="Wrap"/></ScrollViewer></Border></Grid></StackPanel></Border>
+          <Border Classes="card"><Grid RowDefinitions="Auto,*" Height="250"><TextBlock Text="Activity log · document content omitted" Classes="sectionTitle"/><ListBox x:Name="RuntimeLogList" Grid.Row="1" Margin="0,10,0,0" Background="Transparent" BorderThickness="0" FontSize="11"/></Grid></Border>
+          <Border Background="#F7F8F9" BorderBrush="#CFD3D6" BorderThickness="1" CornerRadius="8" Padding="12"><StackPanel Spacing="5"><TextBlock Text="Prototype limitations" FontWeight="Bold"/><TextBlock Text="Experimental offline local starter only. Workflow signatures and encrypted-vault state are tamper-evident demonstrations, not audit-grade logging or a strong security boundary. Local account lockout and the separate vault-unlock limiter can be altered by someone controlling local files, the app, or device clock. No remote identity, trusted timestamp, secure media erasure, or zero-knowledge proofs are implemented. PDF scanner/parser integrations are demo-only. Azure HSM and FIPS/FedRAMP are not configured or validated." TextWrapping="Wrap"/></StackPanel></Border>
+          <Button Classes="secondary" HorizontalAlignment="Left" Content="Save record and proceed to next record" Click="OnProceedToNextRecordClick"/>
+        </StackPanel>
+      </Grid>
+    </ScrollViewer>
+
+    <TextBlock x:Name="PrototypeFooter" Grid.Row="2" Text="Prototype: 1.0.0 // date" HorizontalAlignment="Right" FontSize="10" Foreground="#42464A" Margin="0,4,0,0"/>
+  </Grid>
+</Window>

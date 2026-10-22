@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export DISPLAY="${DISPLAY:-:1}"
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp}"
+WEB_ROOT="$RUNTIME_DIR/secrev-novnc"
+
+start_background() {
+  local pid_file="$1"
+  local log_file="$2"
+  shift 2
+
+  if [[ -f "$pid_file" ]]; then
+    local existing_pid
+    existing_pid="$(cat "$pid_file" 2>/dev/null || true)"
+    if [[ "$existing_pid" =~ ^[0-9]+$ ]] && kill -0 "$existing_pid" 2>/dev/null; then
+      return
+    fi
+    rm -f "$pid_file"
+  fi
+
+  nohup "$@" >>"$log_file" 2>&1 </dev/null &
+  echo "$!" > "$pid_file"
+}
+
+if ! pgrep -f '[X]vfb :1' >/dev/null 2>&1; then
+  rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
+  start_background "$RUNTIME_DIR/secrev-xvfb.pid" "$RUNTIME_DIR/secrev-xvfb.log" \
+    Xvfb :1 -screen 0 1280x800x24 -nolisten tcp -noreset
+fi
+
+# Wait briefly for Xvfb to accept local X clients, without exposing an X11 TCP listener.
+for _ in {1..100}; do
+  if DISPLAY=:1 xdpyinfo >/dev/null 2>&1; then
+    break
+  fi
+done
+if ! DISPLAY=:1 xdpyinfo >/dev/null 2>&1; then
+  echo "Xvfb did not start on display :1; inspect /tmp/secrev-xvfb.log." >&2
+  exit 1
+fi
+
+if ! pgrep -f '[f]luxbox.*:1' >/dev/null 2>&1; then
+  start_background "$RUNTIME_DIR/secrev-fluxbox.pid" "$RUNTIME_DIR/secrev-fluxbox.log" \
+    env DISPLAY=:1 fluxbox
+fi
+
+if ! pgrep -f '[x]11vnc.*5900' >/dev/null 2>&1; then
+  # VNC itself is loopback-only and has no password. Codespaces forwards only the
+  # private noVNC HTTP port below; do not expose port 5900 or change the port to public.
+  start_background "$RUNTIME_DIR/secrev-x11vnc.pid" "$RUNTIME_DIR/secrev-x11vnc.log" \
+    x11vnc -display :1 -localhost -nopw -forever -shared -rfbport 5900 \
+      -gone "$ROOT_DIR/.devcontainer/stop-codespace.sh --browser-closed"
+fi
+
+mkdir -p "$WEB_ROOT"
+cp -a /usr/share/novnc/. "$WEB_ROOT/"
+cat > "$WEB_ROOT/index.html" <<'HTML'
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SecRev Codespaces Desktop</title>
+  <meta http-equiv="refresh" content="0; url=/vnc.html?autoconnect=true&amp;resize=remote&amp;path=websockify">
+</head>
+<body>
+  <p>Opening the SecRev virtual desktop… If it does not open, <a href="/vnc.html?autoconnect=true&amp;resize=remote&amp;path=websockify">open noVNC</a>.</p>
+</body>
+</html>
+HTML
+
+if ! pgrep -f '[w]ebsockify.*6080' >/dev/null 2>&1; then
+  start_background "$RUNTIME_DIR/secrev-websockify.pid" "$RUNTIME_DIR/secrev-websockify.log" \
+    websockify --web="$WEB_ROOT" 6080 127.0.0.1:5900
+fi
+
+# Codespaces postCreateCommand builds and tests once. Rebuild on restart if the
+# executable is absent, then launch the Avalonia desktop in the virtual display.
+if ! pgrep -f '[S]ecRev.dll|/SecRev$' >/dev/null 2>&1; then
+  if [[ ! -f "$ROOT_DIR/bin/Debug/net10.0/SecRev.dll" ]]; then
+    dotnet build "$ROOT_DIR/SecRev.csproj"
+  fi
+  start_background "$RUNTIME_DIR/secrev-app.pid" "$RUNTIME_DIR/secrev-app.log" \
+    env DISPLAY=:1 dotnet "$ROOT_DIR/bin/Debug/net10.0/SecRev.dll"
+fi
+
+printf 'SecRev Codespaces desktop started. Open private forwarded port 6080 to view it.\n'
+printf 'App log: %s/secrev-app.log\n' "$RUNTIME_DIR"

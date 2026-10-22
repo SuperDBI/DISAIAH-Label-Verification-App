@@ -1,0 +1,44 @@
+services:
+  clamav:
+    image: clamav/clamav:1.5.4
+    restart: unless-stopped
+    volumes:
+      - clamav-signatures:/var/lib/clamav
+    expose:
+      - "3310"
+    environment:
+      CLAMD_CONF_StreamMaxLength: 30M
+      CLAMD_CONF_MaxFileSize: 30M
+      CLAMD_CONF_MaxScanSize: 100M
+    mem_limit: 3g
+    cpus: 2.0
+
+  pdf-parser:
+    build:
+      context: ..
+      dockerfile: PdfSandbox/Dockerfile
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      - clamav
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+      PDF_SANDBOX_TOKEN: ${PDF_SANDBOX_TOKEN:?Set PDF_SANDBOX_TOKEN to a random value of at least 32 characters}
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: "3310"
+      ENABLE_LOCAL_CLAMAV: "true"
+    ports:
+      - "127.0.0.1:5080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp/pdfwork:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 64
+    mem_limit: 2g
+    cpus: 1.0
+
+volumes:
+  clamav-signatures:

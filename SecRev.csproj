@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Azure/**/*.cs" />
+    <Compile Remove="Tests/**/*.cs" />
+    <Compile Remove="tools/**/*.cs" />
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.4" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <Target Name="BuildNativeCore" BeforeTargets="Build" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <MakeDir Directories="$(TargetDir)" />
+    <Exec Command="clang++ -std=c++17 -O2 -dynamiclib -fvisibility=hidden &quot;$(MSBuildProjectDirectory)/native/secrev_native.cpp&quot; -o &quot;$(TargetDir)libsecrev_native.dylib&quot;" />
+  </Target>
+
+  <Target Name="PublishNativeCore" AfterTargets="Publish" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <MakeDir Directories="$(PublishDir)" />
+    <Exec Command="clang++ -std=c++17 -O2 -dynamiclib -fvisibility=hidden &quot;$(MSBuildProjectDirectory)/native/secrev_native.cpp&quot; -o &quot;$(PublishDir)libsecrev_native.dylib&quot;" />
+  </Target>
+
+  <Target Name="BuildNativeCoreLinux" BeforeTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <MakeDir Directories="$(TargetDir)" />
+    <Exec Command="clang++ -std=c++17 -O2 -shared -fPIC -fvisibility=hidden &quot;$(MSBuildProjectDirectory)/native/secrev_native.cpp&quot; -o &quot;$(TargetDir)libsecrev_native.so&quot;" />
+  </Target>
+
+  <Target Name="PublishNativeCoreLinux" AfterTargets="Publish" Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <MakeDir Directories="$(PublishDir)" />
+    <Exec Command="clang++ -std=c++17 -O2 -shared -fPIC -fvisibility=hidden &quot;$(MSBuildProjectDirectory)/native/secrev_native.cpp&quot; -o &quot;$(PublishDir)libsecrev_native.so&quot;" />
+  </Target>
+
+  <Target Name="BuildNativeCoreWindows" BeforeTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(Platform)' != 'iOS'">
+    <MakeDir Directories="$(TargetDir)" />
+    <Exec Command="cl.exe /nologo /std:c++17 /O2 /LD /EHsc /Fo:&quot;$(TargetDir)secrev_native.obj&quot; &quot;$(MSBuildProjectDirectory)\native\secrev_native.cpp&quot; /Fe:&quot;$(TargetDir)secrev_native.dll&quot;" />
+  </Target>
+</Project>

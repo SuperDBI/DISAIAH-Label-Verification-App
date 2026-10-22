@@ -1,0 +1,11 @@
+{
+  "name": "pdf-records",
+  "fields": [
+    { "name": "id", "type": "Edm.String", "key": true, "searchable": false, "filterable": true, "sortable": true },
+    { "name": "tenantId", "type": "Edm.String", "searchable": false, "filterable": true, "facetable": false },
+    { "name": "fileName", "type": "Edm.String", "searchable": true, "filterable": false, "sortable": true },
+    { "name": "content", "type": "Edm.String", "searchable": true, "filterable": false, "sortable": false, "analyzer": "en.microsoft" },
+    { "name": "status", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": true },
+    { "name": "sha256", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": false }
+  ]
+}

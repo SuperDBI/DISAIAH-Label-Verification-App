@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+artifacts/
+.vs/
+.vscode/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+**/vault.enc
+**/vault.enc.*
+**/local-services/
+**/*.log

@@ -1,0 +1,33 @@
+{
+  "name": "SecRev Avalonia + C++ Codespaces",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-10.0-bookworm",
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb"
+  },
+  "forwardPorts": [6080],
+  "portsAttributes": {
+    "6080": {
+      "label": "SecRev desktop (private noVNC)",
+      "onAutoForward": "openBrowser",
+      "visibility": "private"
+    }
+  },
+  "onCreateCommand": "bash .devcontainer/install-dependencies.sh",
+  "postCreateCommand": "dotnet restore SecRev.csproj && dotnet build SecRev.csproj && dotnet test Tests/SecRev.Tests/SecRev.Tests.csproj",
+  "postStartCommand": "bash .devcontainer/start-codespace.sh",
+  "remoteEnv": {
+    "DISPLAY": ":1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-vscode.cpptools"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  }
+}
