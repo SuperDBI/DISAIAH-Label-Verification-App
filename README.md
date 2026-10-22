@@ -27,6 +27,30 @@ The setup validates the .NET desktop build/tests and native Linux compilation. I
 
 **Online sandbox configuration acknowledged:** `.devcontainer/devcontainer.json` provisions the .NET 10 Linux Codespace, C++ toolchain, Avalonia/X11 runtime libraries, private forwarded port 6080, and automated restore/build/test/start commands. `.devcontainer/install-dependencies.sh` installs native and virtual-display dependencies; `.devcontainer/start-codespace.sh` launches Xvfb, Fluxbox, loopback-only VNC, noVNC, and SecRev; `.devcontainer/stop-codespace.sh` supports manual shutdown and the automatic last-browser-client disconnect callback. These files prepare a development/test sandbox only. They do not make SecRev a browser/WASM app or make the Codespace appropriate for sensitive production records. Configuration syntax has been checked locally, but Codespaces provisioning, GUI interaction, and browser-close shutdown still require an end-to-end test in GitHub Codespaces.
 
+#### DigitalOcean Droplet deployment (one container, persistent vault)
+
+`deploy/digitalocean/deploy.sh` creates one Droplet (`s-2vcpu-4gb`) running a single container built from `Dockerfile.desktop`, plus a **1 GiB** block-storage volume (DigitalOcean's minimum size). The container holds the full desktop UI (streamed to the browser via noVNC), ClamAV, Tesseract and the PDF parser, so every feature runs inside it. Only the encrypted vault directory (`/data/.config/SecRev`, i.e. `vault.enc`) lives on the volume; it is mounted at `/mnt/secrev_data/vault` on the host, formatted only if blank, and survives container rebuilds and Droplet restarts. ClamAV signatures (several hundred MB) are intentionally kept off the volume and re-downloaded on each start.
+
+```sh
+doctl auth init
+[VNC_PASSWORD='at-least-12-chars'] DOMAIN=secrev.example.com ADMIN_CIDR=203.0.113.4/32 deploy/digitalocean/deploy.sh
+```
+
+- `VNC_PASSWORD` is **optional**. If set (12+ characters from `A-Z a-z 0-9 . _ @ % + = -`), noVNC prompts for it; if unset, no viewer password is required, so with a public `DOMAIN` anyone with the URL can use the desktop.
+- With `DOMAIN`, the Droplet installs Caddy (a host service, not a second container) for automatic HTTPS and opens ports 80/443; point the domain's A record at the printed IP. Without `DOMAIN`, nothing is exposed publicly: set `ADMIN_CIDR` to allow SSH and use `ssh -L 8080:127.0.0.1:8080 root@<ip>`, then open `http://localhost:8080`.
+- First boot clones the repository (it must be publicly cloneable, or set `REPO_URL`) and builds the image, which takes roughly 10-15 minutes. PDF scans fail closed for another minute or two after each start until ClamAV signatures download. Override `REGION`, `SIZE`, `NAME`, or `BRANCH` through environment variables; do not go below 4 GB RAM because clamd alone uses about 1.3 GB.
+- The container publishes on `127.0.0.1` only, runs as a non-root user with all capabilities dropped, and the Droplet firewall allows only the ports above.
+
+Still a demo-grade deployment: the first-Custodian bootstrap token is prefilled in the UI and printed in `docker logs secrev` on each start, so setting `VNC_PASSWORD` is strongly recommended; there are no backups of the volume (take DigitalOcean snapshots if needed); and the container is not an approved enterprise scanning or isolation boundary. Do not use real or regulated documents without a separate review.
+
+#### Optional Render browser-streamed desktop and PDF services
+
+Render cannot run Docker-in-Docker, so `Dockerfile.desktop` bundles ClamAV, Tesseract and the PDF parser inside the image. `scripts/render-desktop.sh` downloads ClamAV signatures on every container start, then runs clamd and the parser on loopback with a per-start random token and passes the endpoint/token to the app (`SECREV_PDF_SERVICES_MANAGED=1`). The compose launcher is not used there. PDF scans fail closed until signatures are loaded, so the first scan after a start can report that services are still starting. clamd uses roughly 1.3 GB of RAM; choose an instance with at least 2 GB. This remains a demo-only arrangement, not an approved enterprise scanning attestation.
+
+#### Public static showcase
+
+The `docs/` folder contains a public, static showcase with fixed synthetic examples and downloadable synthetic text samples only. Anything in the published folder is publicly accessible. It has no upload form, free-text input, account, vault, or processing API; it is not the desktop application or a hosted document-review service. The page does not open or process its downloadable samples. GitHub Pages can publish this static page from the repository, but it cannot run the .NET/native backend. To publish, enable **Settings → Pages → Build and deployment → Source: GitHub Actions**. The workflow at `.github/workflows/pages.yml` deploys `docs/` after changes are pushed to `main` (or when manually run). GitHub provides the public Pages URL after the first successful deployment; availability is subject to GitHub Pages service availability.
+
 ```sh
 dotnet build SecRev.csproj
 dotnet run --project SecRev.csproj

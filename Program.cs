@@ -17,7 +17,7 @@ class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        // Headless API mode for container hosting (e.g. Render); the desktop UI is the default.
+        // Headless API mode for container hosting; the desktop UI is the default.
         if (Array.Exists(args, a => a == "--api") || Environment.GetEnvironmentVariable("SECREV_API") == "1")
         {
             RunApi(args);
@@ -31,7 +31,7 @@ class Program
     private static void RunApi(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        // Render supplies PORT; bind to all interfaces inside the container.
+        // Honor a platform-provided port when present; bind to all container interfaces.
         if (Environment.GetEnvironmentVariable("PORT") is { Length: > 0 } port)
         {
             builder.WebHost.UseUrls($"http://0.0.0.0:{port}");

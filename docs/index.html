@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A static, synthetic-data-only showcase for the experimental SecRev document review prototype.">
+  <title>SecRev | Public Demo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #17212b;
+      background: #f4f7fa;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --ink-soft: #526171;
+      --border: #d9e1e8;
+      --accent: #135d70;
+      --accent-dark: #0b4352;
+      --surface: #fff;
+      --warning-bg: #fff5d9;
+      --warning-border: #e6c66e;
+    }
+
+    * { box-sizing: border-box; }
+
+    body { margin: 0; }
+
+    .topbar {
+      background: #102b38;
+      color: #fff;
+      padding: 1rem max(1.25rem, calc((100% - 1080px) / 2));
+    }
+
+    .brand {
+      font-size: 1.05rem;
+      font-weight: 750;
+      letter-spacing: .04em;
+    }
+
+    main {
+      width: min(100% - 2rem, 1080px);
+      margin: 3.5rem auto;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: .78rem;
+      font-weight: 750;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin: .6rem 0 1rem;
+      font-size: clamp(2.2rem, 5vw, 3.7rem);
+      line-height: 1.08;
+    }
+
+    h2 { margin: 0 0 .75rem; font-size: 1.35rem; }
+    p { line-height: 1.65; }
+
+    .intro {
+      max-width: 720px;
+      color: var(--ink-soft);
+      font-size: 1.1rem;
+    }
+
+    .notice {
+      margin: 1.75rem 0 2.5rem;
+      padding: 1rem 1.2rem;
+      border: 1px solid var(--warning-border);
+      border-left: 5px solid #b37b00;
+      border-radius: .55rem;
+      background: var(--warning-bg);
+    }
+
+    .notice p { margin: .25rem 0; }
+
+    .examples {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      margin: 1.25rem 0 2.5rem;
+    }
+
+    .card {
+      padding: 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      background: var(--surface);
+      box-shadow: 0 5px 18px rgb(16 43 56 / 5%);
+    }
+
+    .sample {
+      min-height: 5rem;
+      padding: .9rem;
+      border-radius: .4rem;
+      background: #f1f5f7;
+      color: #243746;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    dl {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: .55rem 1rem;
+      margin: 1rem 0 0;
+    }
+
+    dt { color: var(--ink-soft); }
+    dd { margin: 0; font-weight: 700; text-align: right; }
+
+    .tag {
+      display: inline-block;
+      margin-bottom: .75rem;
+      padding: .25rem .55rem;
+      border-radius: 999px;
+      background: #e6f2f4;
+      color: var(--accent-dark);
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    .limits {
+      padding: 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      background: var(--surface);
+    }
+
+    .limits ul { margin-bottom: 0; padding-left: 1.25rem; }
+    .limits li { margin: .45rem 0; line-height: 1.5; }
+
+    footer {
+      margin-top: 3rem;
+      padding: 1.25rem 0;
+      border-top: 1px solid var(--border);
+      color: var(--ink-soft);
+      font-size: .9rem;
+    }
+
+    @media (max-width: 680px) {
+      main { margin-top: 2.25rem; }
+      .examples { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">SecRev</div>
+  </header>
+  <main>
+    <p class="eyebrow">Public static showcase</p>
+    <h1>Document review, demonstrated with synthetic examples</h1>
+    <p class="intro">
+      SecRev is an experimental desktop prototype exploring document review workflows,
+      deterministic text analysis, and local record handling. This page is a small,
+      read-only showcase—not the SecRev application.
+    </p>
+
+    <aside class="notice" aria-label="Demo limitations">
+      <p><strong>Demo only.</strong> All examples below are fictional and prewritten.</p>
+      <p>This site has no document upload, free-text submission, account, vault, or processing API.</p>
+    </aside>
+
+    <section aria-labelledby="examples-heading">
+      <h2 id="examples-heading">Illustrative text-analysis examples</h2>
+      <p>These fixed results describe what the prototype's basic text helpers report for each sample.</p>
+      <div class="examples">
+        <article class="card">
+          <span class="tag">Synthetic example A</span>
+          <h2>Routine case note</h2>
+          <div class="sample">SYNTHETIC DEMO DATA ONLY<br>Avery Example (avery@example.com) reviewed case 1042.</div>
+          <dl>
+            <dt>Word groups</dt><dd>12</dd>
+            <dt>Email candidates</dt><dd>1</dd>
+            <dt>Number groups</dt><dd>1</dd>
+            <dt>Fixed-string matches</dt><dd>0</dd>
+          </dl>
+        </article>
+        <article class="card">
+          <span class="tag">Synthetic example B</span>
+          <h2>Test marker in text</h2>
+          <div class="sample">SYNTHETIC DEMO DATA ONLY<br>DEMO ONLY: Test marker powershell in body</div>
+          <dl>
+            <dt>Word groups</dt><dd>11</dd>
+            <dt>Email candidates</dt><dd>0</dd>
+            <dt>Number groups</dt><dd>0</dd>
+            <dt>Fixed-string matches</dt><dd>1</dd>
+          </dl>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="samples-heading">
+      <h2 id="samples-heading">Preloaded sample files</h2>
+      <p>These fictional plain-text files are included in the public site and can be downloaded by anyone.</p>
+      <ul>
+        <li><a href="./samples/demo-case-note.txt" download>Download synthetic case note</a></li>
+        <li><a href="./samples/demo-test-marker.txt" download>Download synthetic test-marker sample</a></li>
+      </ul>
+    </section>
+
+    <section class="limits" aria-labelledby="limits-heading">
+      <h2 id="limits-heading">Important limitations</h2>
+      <ul>
+        <li>The examples are static; this page does not run the analysis engine or accept user data.</li>
+        <li>Sample files are served as static downloads; this site does not open, scan, or process them.</li>
+        <li>Fixed-string matching is not malware detection, document validation, or a security verdict.</li>
+        <li>The full prototype is an experimental desktop application, not a production security product or compliance implementation.</li>
+        <li>Do not use this showcase for real, confidential, regulated, or otherwise sensitive information.</li>
+      </ul>
+    </section>
+
+    <footer>
+      SecRev public demo · Static content only · No document-processing service is connected to this site.
+    </footer>
+  </main>
+</body>
+</html>

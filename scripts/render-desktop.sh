@@ -60,6 +60,50 @@ fi
 
 websockify --web="$WEB_ROOT" "$PORT" 127.0.0.1:5900 &
 
+# Local PDF services (ClamAV + parser) run in this container; Docker-in-Docker is unavailable on Render.
+# Everything binds to loopback and shares a per-start token with the app.
+PDF_STATE=/tmp/secrev-pdf
+mkdir -p "$PDF_STATE/database" "$PDF_STATE/tmp"
+chmod 700 "$PDF_STATE" "$PDF_STATE/database" "$PDF_STATE/tmp"
+PDF_SANDBOX_TOKEN="$(openssl rand -hex 32)"
+export PDF_SANDBOX_TOKEN
+export SECREV_PDF_PARSER_ENDPOINT="http://127.0.0.1:5080"
+export SECREV_PDF_PARSER_TOKEN="$PDF_SANDBOX_TOKEN"
+export SECREV_PDF_SERVICES_MANAGED=1
+
+start_pdf_services() {
+  cat > "$PDF_STATE/freshclam.conf" <<EOF
+DatabaseDirectory $PDF_STATE/database
+DatabaseMirror database.clamav.net
+Foreground yes
+Checks 1
+EOF
+  cat > "$PDF_STATE/clamd.conf" <<EOF
+DatabaseDirectory $PDF_STATE/database
+TemporaryDirectory $PDF_STATE/tmp
+Foreground yes
+TCPSocket 3310
+TCPAddr 127.0.0.1
+StreamMaxLength 30M
+MaxFileSize 30M
+MaxScanSize 100M
+MaxThreads 2
+MaxQueue 4
+EOF
+  # Fail closed: without signatures clamd never starts, so /health/ready stays unhealthy and no PDF is parsed.
+  freshclam --config-file="$PDF_STATE/freshclam.conf" >"$PDF_STATE/freshclam.log" 2>&1 || {
+    echo "ClamAV signature download failed; PDF scanning stays unavailable."; return 0; }
+  clamd --config-file="$PDF_STATE/clamd.conf" >"$PDF_STATE/clamd.log" 2>&1 &
+  for _ in $(seq 1 120); do
+    (exec 3<>/dev/tcp/127.0.0.1/3310) 2>/dev/null && break
+    sleep 1
+  done
+  ENABLE_LOCAL_CLAMAV=true CLAMAV_HOST=127.0.0.1 CLAMAV_PORT=3310 \
+    TESSERACT_PATH=/usr/bin/tesseract TMPDIR="$PDF_STATE/tmp" \
+    dotnet /opt/pdf-sandbox/PdfSandbox.dll --urls "$SECREV_PDF_PARSER_ENDPOINT" >"$PDF_STATE/parser.log" 2>&1 &
+}
+start_pdf_services &
+
 # Relaunch the app if it is closed so the browser never shows an empty desktop.
 while true; do
   dotnet /app/SecRev.dll || true

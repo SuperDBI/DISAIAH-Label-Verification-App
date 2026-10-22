@@ -3,19 +3,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends clang && rm -rf
 WORKDIR /src
 COPY . .
 RUN dotnet publish SecRev.csproj -c Release -o /out
+RUN dotnet publish Azure/PdfPipeline/PdfSandbox/PdfSandbox.csproj -c Release -o /pdf-sandbox
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
+# Render cannot run Docker-in-Docker, so ClamAV, Tesseract and the PDF parser run inside this container.
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      clamav clamav-daemon clamav-freshclam tesseract-ocr tesseract-ocr-eng \
       xvfb x11vnc fluxbox novnc websockify x11-utils openssl \
       libfontconfig1 libfreetype6 libgl1 libice6 libsm6 libx11-6 libxcomposite1 libxcursor1 \
       libxdamage1 libxext6 libxfixes3 libxi6 libxinerama1 libxkbcommon0 libxrandr2 libxrender1 libxtst6 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /out/ ./
+COPY --from=build /pdf-sandbox/ /opt/pdf-sandbox/
 COPY --from=build --chown=app:app ["/src/SAMPLE Forms", "/data/SAMPLE Forms"]
 COPY scripts/render-desktop.sh /usr/local/bin/render-desktop.sh
 RUN mkdir -p /data/.config && chown -R app:app /data
 RUN chmod +x /usr/local/bin/render-desktop.sh
+# Fluxbox pops up a blocking "no wallpaper setter" dialog over the app unless fbsetbg exists.
+RUN printf '#!/bin/sh\nexit 0\n' > /usr/local/bin/fbsetbg && chmod +x /usr/local/bin/fbsetbg
 ENV DOTNET_EnableDiagnostics=0 HOME=/data XDG_CONFIG_HOME=/data/.config
 EXPOSE 8080
 USER app

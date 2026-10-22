@@ -1,6 +1,11 @@
 bin/
 obj/
 .git/
-Azure/
+Azure/*
+!Azure/PdfPipeline/
+Azure/PdfPipeline/*
+!Azure/PdfPipeline/PdfSandbox/
+**/bin/
+**/obj/
 Tests/
 tools/

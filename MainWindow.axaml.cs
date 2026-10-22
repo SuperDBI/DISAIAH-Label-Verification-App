@@ -156,6 +156,8 @@ public partial class MainWindow : Window
                 if (response.IsSuccessStatusCode) return;
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) { }
+            if (Environment.GetEnvironmentVariable("SECREV_PDF_SERVICES_MANAGED") == "1")
+                throw new InvalidOperationException("The container's PDF/ClamAV services are still starting (virus signatures download on each start). Retry in a minute or two.");
             Environment.SetEnvironmentVariable("SECREV_PDF_PARSER_ENDPOINT", null);
             Environment.SetEnvironmentVariable("SECREV_PDF_PARSER_TOKEN", null);
         }
