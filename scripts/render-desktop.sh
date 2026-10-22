@@ -159,7 +159,7 @@ start_pdf_services &
 while true; do
   # Per-process GC caps: .NET otherwise sizes each process against the whole container limit.
   code=0
-  DOTNET_GCHeapHardLimit=0x18000000 DOTNET_GCConserveMemory=9 DOTNET_gcConcurrent=0 DOTNET_TieredPGO=0 MALLOC_ARENA_MAX=2 dotnet /app/SecRev.dll || code=$?
+  DOTNET_GCHeapHardLimit=0x24000000 DOTNET_GCHighMemPercent=0x46 DOTNET_GCConserveMemory=9 DOTNET_gcConcurrent=0 DOTNET_TieredPGO=0 MALLOC_ARENA_MAX=2 dotnet /app/SecRev.dll || code=$?
   echo "SecRev exited with code $code (137 = killed, usually out of memory). Memory: $(free -m | awk 'NR==2{print $3"/"$2" MB used"}')"
   sleep 1
 done
