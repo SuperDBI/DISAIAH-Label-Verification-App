@@ -31,5 +31,4 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   libxkbcommon0 \
   libxrandr2 \
   libxrender1 \
-  libxtst6 \
-  && sudo rm -rf /var/lib/apt/lists/*
+  libxtst6
