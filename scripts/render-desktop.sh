@@ -6,7 +6,7 @@ export DISPLAY=:1
 PORT="${PORT:-10000}"
 WEB_ROOT=/tmp/novnc
 
-Xvfb :1 -screen 0 1280x720x16 -nolisten tcp -noreset &
+Xvfb :1 -screen 0 1600x960x24 -nolisten tcp -noreset &
 for _ in $(seq 1 100); do
   xdpyinfo >/dev/null 2>&1 && break
   sleep 0.1
@@ -19,16 +19,16 @@ if [[ -n "${VNC_PASSWORD:-}" ]]; then
   x11vnc -storepasswd "$VNC_PASSWORD" /tmp/vncpass >/dev/null 2>&1
   VNC_AUTH=(-rfbauth /tmp/vncpass)
 fi
-x11vnc -display :1 -localhost "${VNC_AUTH[@]}" -forever -shared -rfbport 5900 -quiet -noxdamage -wait 50 -defer 50 -nocursorshape -noxfixes >/dev/null 2>&1 &
+x11vnc -display :1 -localhost "${VNC_AUTH[@]}" -forever -shared -rfbport 5900 -quiet >/dev/null 2>&1 &
 
 mkdir -p "$WEB_ROOT"
 cp -a /usr/share/novnc/. "$WEB_ROOT/"
 cat > "$WEB_ROOT/index.html" <<'HTML'
 <!doctype html>
 <meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url=/vnc.html?autoconnect=true&resize=scale&path=websockify&quality=2&compression=9">
+<meta http-equiv="refresh" content="0; url=/vnc.html?autoconnect=true&resize=scale&path=websockify">
 <title>SecRev Desktop</title>
-<a href="/vnc.html?autoconnect=true&resize=scale&path=websockify&quality=2&compression=9">Open SecRev desktop</a>
+<a href="/vnc.html?autoconnect=true&resize=scale&path=websockify">Open SecRev desktop</a>
 HTML
 
 # Demo only: each container start gets a fresh bootstrap token that the app prefills into the first-Custodian form.
@@ -44,6 +44,6 @@ websockify --web="$WEB_ROOT" "$PORT" 127.0.0.1:5900 &
 
 # Relaunch the app if it is closed so the browser never shows an empty desktop.
 while true; do
-  env SECREV_SOFTWARE_RENDER=1 DOTNET_TieredPGO=0 dotnet /app/SecRev.dll || true
+  dotnet /app/SecRev.dll || true
   sleep 1
 done
