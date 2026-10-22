@@ -79,6 +79,13 @@ if ! DISPLAY=:1 xdpyinfo >/dev/null 2>&1; then
   exit 1
 fi
 
+# Fluxbox's packaged style requests a wallpaper, which makes fbsetbg open an
+# error dialog when no wallpaper setter is installed in the Codespace.
+mkdir -p "$HOME/.fluxbox"
+if ! grep -Eq '^[[:space:]]*background:[[:space:]]*none([[:space:]]|$)' "$HOME/.fluxbox/overlay" 2>/dev/null; then
+  printf '\nbackground: none\n' >> "$HOME/.fluxbox/overlay"
+fi
+
 if ! pgrep -f '[f]luxbox.*:1' >/dev/null 2>&1; then
   start_background "$RUNTIME_DIR/secrev-fluxbox.pid" "$RUNTIME_DIR/secrev-fluxbox.log" \
     env DISPLAY=:1 fluxbox

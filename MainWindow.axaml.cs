@@ -608,6 +608,11 @@ public partial class MainWindow : Window
             _runtimeLog.Add("Document import failed; content was not written to the runtime log.");
             await MessageBoxAsync("Import failed", ex is DllNotFoundException ? "Native analysis core is unavailable. Build the app again." : ex.Message);
         }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            _runtimeLog.Add($"Document import failed ({ex.GetType().Name}); content was not written to the runtime log.");
+            await MessageBoxAsync("Import failed", "The file could not be imported or scanned due to an unexpected local error. Any imported source remains encrypted; no PDF extraction was accepted.");
+        }
     }
 
     private void OnDocumentSelected(object? sender, SelectionChangedEventArgs e)
@@ -945,6 +950,12 @@ public partial class MainWindow : Window
         {
             _runtimeLog.Add("Local malware scan/image extraction was unavailable; the PDF was not parsed.");
             await MessageBoxAsync("Local scan unavailable", ex.Message);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            _runtimeLog.Add($"Local PDF operation failed ({ex.GetType().Name}); document content was not logged.");
+            PdfParserStatus.Text = "Local PDF scan failed; the imported source remains encrypted.";
+            await MessageBoxAsync("Local scan failed", "The local PDF/ClamAV operation failed unexpectedly. The source remains encrypted and extraction was not accepted. Check the local PDF service setup, then retry.");
         }
     }
 

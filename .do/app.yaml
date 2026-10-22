@@ -1,0 +1,21 @@
+name: disaiah-label
+region: nyc
+services:
+  - name: desktop
+    github:
+      repo: SuperDBI/DISAIAH-Label-Verification-App
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: Dockerfile.desktop
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-2vcpu-4gb
+    health_check:
+      http_path: /
+      initial_delay_seconds: 60
+    envs:
+      - key: VNC_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
+    routes:
+      - path: /
