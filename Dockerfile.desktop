@@ -17,5 +17,6 @@ COPY scripts/render-desktop.sh /usr/local/bin/render-desktop.sh
 RUN mkdir -p /data/.config && chown -R app:app /data
 RUN chmod +x /usr/local/bin/render-desktop.sh
 ENV DOTNET_EnableDiagnostics=0 HOME=/data XDG_CONFIG_HOME=/data/.config
+EXPOSE 8080
 USER app
 ENTRYPOINT ["/usr/local/bin/render-desktop.sh"]

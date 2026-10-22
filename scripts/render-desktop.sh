@@ -3,7 +3,7 @@
 set -euo pipefail
 
 export DISPLAY=:1
-PORT="${PORT:-10000}"
+PORT="${PORT:-8080}"
 WEB_ROOT=/tmp/novnc
 
 Xvfb :1 -screen 0 1600x960x24 -nolisten tcp -noreset &
@@ -25,10 +25,28 @@ mkdir -p "$WEB_ROOT"
 cp -a /usr/share/novnc/. "$WEB_ROOT/"
 cat > "$WEB_ROOT/index.html" <<'HTML'
 <!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url=/vnc.html?autoconnect=true&resize=scale&path=websockify">
-<title>SecRev Desktop</title>
-<a href="/vnc.html?autoconnect=true&resize=scale&path=websockify">Open SecRev desktop</a>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecRev Demo</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 3rem auto; padding: 0 1rem; color: #1b1b1b; line-height: 1.5; }
+  .start { display: inline-block; margin: 1rem 0; padding: .75rem 1.5rem; background: #1f4e9c; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; }
+  .note { color: #555; font-size: .9rem; }
+</style>
+</head>
+<body>
+<h1>SecRev Demo</h1>
+<p>This starts the full SecRev desktop app, streamed to your browser. Nothing connects until you click the button.</p>
+<a class="start" href="/vnc.html?autoconnect=true&amp;resize=scale&amp;path=websockify">Start the desktop</a>
+<ul class="note">
+  <li>The first load can take a minute if the service was asleep, and the stream may feel slow on a small instance.</li>
+  <li>This is a disposable demo: the vault and the first-Custodian token reset on every restart or redeploy. Do not use real data.</li>
+  <li>The stream needs WebSocket support from the host.</li>
+</ul>
+</body>
+</html>
 HTML
 
 # Demo only: each container start gets a fresh bootstrap token that the app prefills into the first-Custodian form.
