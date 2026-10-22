@@ -120,6 +120,8 @@ start_pdf_services &
 # Relaunch the app if it is closed so the browser never shows an empty desktop.
 while true; do
   # Per-process GC caps: .NET otherwise sizes each process against the whole container limit.
-  DOTNET_GCHeapHardLimit=0x40000000 DOTNET_GCConserveMemory=5 DOTNET_TieredPGO=0 dotnet /app/SecRev.dll || true
+  code=0
+  DOTNET_GCHeapHardLimit=0x60000000 DOTNET_GCConserveMemory=5 DOTNET_TieredPGO=0 dotnet /app/SecRev.dll || code=$?
+  echo "SecRev exited with code $code (137 = killed, usually out of memory). Memory: $(free -m | awk 'NR==2{print $3"/"$2" MB used"}')"
   sleep 1
 done

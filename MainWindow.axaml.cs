@@ -516,15 +516,25 @@ public partial class MainWindow : Window
     {
         if (!RequireSession()) return;
 
-        var selected = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-                    {
-                        Title = "Import PDF or UTF-8 text document",
-                        AllowMultiple = false,
-                        FileTypeFilter = new[]
-                        {
-                            new FilePickerFileType("PDF and text documents") { Patterns = new[] { "*.pdf", "*.txt", "*.md", "*.csv", "*.json" } }
-                        }
-                    });
+        IReadOnlyList<IStorageFile> selected;
+        try
+        {
+            selected = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Import PDF or UTF-8 text document",
+                AllowMultiple = false,
+                FileTypeFilter = new[]
+                {
+                    new FilePickerFileType("PDF and text documents") { Patterns = new[] { "*.pdf", "*.txt", "*.md", "*.csv", "*.json" } }
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _runtimeLog.Add($"File picker failed ({ex.GetType().Name}); content was not written to the runtime log.");
+            await MessageBoxAsync("File picker unavailable", "The file picker could not be opened in this environment. No document was imported.");
+            return;
+        }
         if (selected.Count == 0) return;
 
         try
