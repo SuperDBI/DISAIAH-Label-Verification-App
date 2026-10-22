@@ -39,6 +39,7 @@ class Program
         builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 4 * 1024 * 1024);
         var app = builder.Build();
 
+        app.MapGet("/", () => Results.Ok(new { service = "SecRev API", endpoints = new[] { "GET /health", "POST /process" } }));
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
         app.MapPost("/process", (ProcessRequest? request) =>
