@@ -4,7 +4,7 @@ WORKDIR /src
 COPY . .
 RUN dotnet publish SecRev.csproj -c Release -o /out
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-bookworm-slim
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /out/ ./
 ENV SECREV_API=1 DOTNET_EnableDiagnostics=0
