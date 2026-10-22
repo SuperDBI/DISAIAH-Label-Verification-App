@@ -40,6 +40,8 @@ cat > "$WEB_ROOT/index.html" <<'HTML'
 <h1>SecRev Demo</h1>
 <p>This starts the full SecRev desktop app, streamed to your browser. Nothing connects until you click the button.</p>
 <a class="start" href="/vnc.html?autoconnect=true&amp;resize=scale&amp;path=websockify">Start the desktop</a>
+<p><strong>The local PDF service is slower due to online host's limited process ram. Be careful not to upload documents too quickly. Allow the process time to recover before uploading additional sample files. Sample forms are available in the Github respository. You may use other forms; be mindful of PDF file size (&lt; 2mb).</strong>
+<a href="https://github.com/SuperDBI/DISAIAH-Label-Verification-App/tree/main/SAMPLE%20Forms" target="_blank" rel="noopener noreferrer">https://github.com/SuperDBI/DISAIAH-Label-Verification-App/tree/main/SAMPLE%20Forms</a></p>
 <h2>Upload a document to import</h2>
 <p>The desktop runs on the server and cannot see your computer. Upload a PDF or text file here, then use Import document in the desktop and pick it from the list.</p>
 <form id="up">
