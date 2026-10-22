@@ -1,4 +1,4 @@
-# SecRev — Local Document Review Prototype
+﻿# SecRev — Local Document Review Prototype
 
 SecRev is an experimental Avalonia/.NET 10 desktop application with a native C++ analysis library. It supports local Analyst/Custodian review of UTF-8 text documents and PDFs. It is a prototype—not a production security product, malware sandbox, audit system, or compliance implementation. Nothing here establishes FIPS validation or FedRAMP authorization.
 
@@ -69,6 +69,8 @@ On macOS, the app continues to use the local ClamAV/Tesseract launcher described
 4. Analysts import supported files; each import is encrypted and persisted before processing. Custodians manage accounts, review submissions, make Stage 4 decisions, delete records, and transfer permanent records.
 
 In the Codespaces preview only, `.devcontainer/start-codespace.sh` generates a fresh `SECREV_BOOTSTRAP_TOKEN` (stored with mode 600 in the runtime directory, so a rebuild creates a new one) and sets `SECREV_PREFILL_BOOTSTRAP_TOKEN=1`, which makes the app prefill the token field during first-Custodian setup. This demo convenience removes the out-of-band nature of the token; do not use it outside the disposable preview.
+
+The Render browser-streamed demo (`Dockerfile.desktop`, `scripts/render-desktop.sh`) does the same: every container start, restart or redeploy generates a **new** `SECREV_BOOTSTRAP_TOKEN` (unless you set one in Render), prefills it into the first-Custodian form, and also prints it once to the Render service logs. The app shows a "Demo notice" under the token field saying so. The free tier has no persistent disk, so the vault is also reset on each restart; the token and vault are therefore disposable. The stream is public by default, so anyone with the URL can use the prefilled form to become the first Custodian. Setting a `VNC_PASSWORD` environment variable in Render is **optional**; if unset, no viewer password is required. Do not use this demo with real data.
 
 Local account permissions/signatures are workflow controls, not an independent identity authority or security boundary. The bootstrap token is not recoverable after setup.
 

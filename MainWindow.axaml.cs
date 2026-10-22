@@ -1,4 +1,4 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -444,7 +444,10 @@ public partial class MainWindow : Window
             return;
         var token = Environment.GetEnvironmentVariable("SECREV_BOOTSTRAP_TOKEN");
         if (!string.IsNullOrWhiteSpace(token))
+        {
             BootstrapTokenBox.Text = token.Trim();
+            DemoTokenNotice.IsVisible = true;
+        }
     }
 
     private async void OnAccountActionClick(object? sender, RoutedEventArgs e)

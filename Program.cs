@@ -72,11 +72,17 @@ class Program
 
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
-            .UsePlatformDetect()
+        => ConfigureRendering(AppBuilder.Configure<App>()
+            .UsePlatformDetect())
 #if DEBUG
             .WithDeveloperTools()
 #endif
             .WithInterFont()
             .LogToTrace();
+
+    // Low-CPU hosts (e.g. the browser-streamed desktop) have no GPU; skip GL and render in software.
+    private static AppBuilder ConfigureRendering(AppBuilder builder)
+        => OperatingSystem.IsLinux() && Environment.GetEnvironmentVariable("SECREV_SOFTWARE_RENDER") == "1"
+            ? builder.With(new X11PlatformOptions { RenderingMode = new[] { X11RenderingMode.Software } })
+            : builder;
 }

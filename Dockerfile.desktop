@@ -13,7 +13,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
 WORKDIR /app
 COPY --from=build /out/ ./
 COPY scripts/render-desktop.sh /usr/local/bin/render-desktop.sh
+RUN mkdir -p /data/.config && chown -R app:app /data
 RUN chmod +x /usr/local/bin/render-desktop.sh
-ENV DOTNET_EnableDiagnostics=0
+ENV DOTNET_EnableDiagnostics=0 HOME=/data XDG_CONFIG_HOME=/data/.config
 USER app
 ENTRYPOINT ["/usr/local/bin/render-desktop.sh"]

@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="using:SecRev.Models"
         xmlns:shapes="using:Avalonia.Controls.Shapes"
@@ -87,6 +87,7 @@
                 </Grid>
                 <TextBox x:Name="BootstrapPasswordConfirmBox" IsVisible="False" PasswordChar="●" PlaceholderText="Confirm initial Custodian password"/>
                 <TextBox x:Name="BootstrapTokenBox" IsVisible="False" PasswordChar="●" PlaceholderText="One-time external token (also supplied as SECREV_BOOTSTRAP_TOKEN)"/>
+                <TextBlock x:Name="DemoTokenNotice" IsVisible="False" Foreground="#8A4B00" TextWrapping="Wrap" Text="Demo notice: the one-time token is prefilled for this hosted demo only. It is regenerated, and the vault is reset, on every restart or redeploy; the current token is printed in the Render service logs. Do not use real data."/>
                 <Button x:Name="AccountActionButton" Classes="action" HorizontalAlignment="Left" Content="Sign in" Click="OnAccountActionClick"/>
               </StackPanel>
               <Border Background="#ECEDEF" CornerRadius="7" Padding="12"><TextBlock Text="Local workflow controls and signatures are tamper-evident demonstrations, not audit-grade logging or a strong security boundary. They can be bypassed or rewritten by someone controlling this app, device, or vault. The workflow is offline and makes no remote identity or timestamp attestation." TextWrapping="Wrap"/></Border>
