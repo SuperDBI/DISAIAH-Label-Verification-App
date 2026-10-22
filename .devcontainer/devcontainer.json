@@ -1,6 +1,11 @@
 {
   "name": "SecRev Avalonia + C++ Codespaces",
-  "image": "mcr.microsoft.com/devcontainers/dotnet:1-10.0-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "10.0"
+    }
+  },
   "hostRequirements": {
     "cpus": 4,
     "memory": "8gb"
