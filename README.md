@@ -33,7 +33,7 @@ The setup validates the .NET desktop build/tests and native Linux compilation. I
 
 #### DigitalOcean Droplet deployment (one container, persistent vault)
 
-`deploy/digitalocean/deploy.sh` creates one Droplet (`s-2vcpu-4gb`) running a single container built from `Dockerfile.desktop`, plus a **1 GiB** block-storage volume (DigitalOcean's minimum size). The container holds the full desktop UI (streamed to the browser via noVNC), ClamAV, Tesseract and the PDF parser, so every feature runs inside it. Only the encrypted vault directory (`/data/.config/SecRev`, i.e. `vault.enc`) lives on the volume; it is mounted at `/mnt/secrev_data/vault` on the host, formatted only if blank, and survives container rebuilds and Droplet restarts. ClamAV signatures (several hundred MB) are intentionally kept off the volume and re-downloaded on each start.
+`deploy/digitalocean/deploy.sh` creates one Droplet (`s-1vcpu-2gb`) running a single container built from `Dockerfile.desktop`, plus a **1 GiB** block-storage volume (DigitalOcean's minimum size). The container holds the full desktop UI (streamed to the browser via noVNC), ClamAV, Tesseract and the PDF parser, so every feature runs inside it. Only the encrypted vault directory (`/data/.config/SecRev`, i.e. `vault.enc`) lives on the volume; it is mounted at `/mnt/secrev_data/vault` on the host, formatted only if blank, and survives container rebuilds and Droplet restarts. ClamAV signatures (several hundred MB) are intentionally kept off the volume and re-downloaded on each start.
 
 ```sh
 doctl auth init
@@ -233,21 +233,21 @@ These are architecture preparations only. No cloud AI agent, Azure token API int
 
 This is a source-based prototype assessment, not an independent security audit or dynamic penetration test. The current desktop and PDF parser .NET projects build; native C++ tests pass. No end-to-end test of PDF samples, password recovery, malicious inputs, or the complete signed workflow was run for this assessment.
 
-### Rubric (0–5)
+### 
 
-| Area | Score | Assessment |
-|---|---:|---|
-| Core import, encrypted persistence, queue | 3.5 | Stage 1 encryption, local persistence, queue separation, duplicate hash links and resume flows exist. No recovery, secure erasure, multi-user concurrency or immutable versions. |
-| Analyst/Custodian workflow | 3.0 | Staged UI, local role checks, signatures, review requirements and Custodian decisions exist. Local keys/code are not independently trusted; UI/service gating is not tamper-resistant. |
-| PDF extraction and review | 3.0 | ClamAV-gated PdfPig/form and embedded-image OCR/preview paths, comparison and bounded outputs exist. Native process isolation is weak; OCR/form comparison is heuristic and no full-page OCR occurs. |
-| Authentication and key management | 2.5 | Per-account PBKDF2 verifiers, vault encryption and lockout friction exist. One shared local vault passphrase, local mutable state, self-managed keys, no OS key store/HSM, recovery or external identity. |
-| Testing and operational readiness | 2.0 | Build checks and native unit tests exist. No comprehensive .NET test suite, end-to-end parser tests, fuzzing, independent review, release signing/notarization or recovery operations. |
-| Azure reference pipeline | 1.5 | Separate code/infrastructure scaffold exists, but it is undeployed and disconnected from desktop; no live integration/security validation. |
-| **Overall prototype completeness** | **2.8 / 5** | Useful functional demonstration; not suitable as a production document-security or compliance system. |
+| Area | Assessment |
+|---|---|
+| Core import, encrypted persistence, queue | Stage 1 encryption, local persistence, queue separation, duplicate hash links and resume flows exist. No recovery, secure erasure, multi-user concurrency or immutable versions. |
+| Analyst/Custodian workflow |  Staged UI, local role checks, signatures, review requirements and Custodian decisions exist. Local keys/code are not independently trusted; UI/service gating is not tamper-resistant. |
+| PDF extraction and review | ClamAV-gated PdfPig/form and embedded-image OCR/preview paths, comparison and bounded outputs exist. Native process isolation is weak; OCR/form comparison is heuristic and no full-page OCR occurs. |
+| Authentication and key management | Per-account PBKDF2 verifiers, vault encryption and lockout friction exist. One shared local vault passphrase, local mutable state, self-managed keys, no OS key store/HSM, recovery or external identity. |
+| Testing and operational readiness | Build checks and native unit tests exist. No comprehensive .NET test suite, end-to-end parser tests, fuzzing, independent review, release signing/notarization or recovery operations. |
+| Azure reference pipeline | Separate code/infrastructure scaffold exists, but it is undeployed and disconnected from desktop; no live integration/security validation. |
+| **Overall prototype completeness** | Useful functional demonstration; not suitable as a production document-security or compliance system. |
 
-### Security risk grade: **High (D)**
+### 
 
-The rating reflects the intended sensitive-document use and current local trust boundary; it is not a vulnerability certification. The highest risks are: PDFs are processed by native/parser libraries in the user's process/service context rather than a hardened disposable sandbox; desktop authorization, signing keys and vault files are locally controlled; exported originals are plaintext; local ClamAV is demo-only and not an enterprise attestation; process memory may contain plaintext; and there is no independent audit trail, trusted identity/timestamp, secure deletion, recovery, backup validation, or external key custody. Do not use with regulated/high-impact documents without redesign and independent assessment.
+The security assessment reflects intended sensitive-document use and current local trust boundary; it is not a vulnerability certification. The highest risks are: PDFs are processed by native/parser libraries in the user's process/service context rather than a hardened disposable sandbox; desktop authorization, signing keys and vault files are locally controlled; exported originals are plaintext; local ClamAV is demo-only and not an enterprise attestation; process memory may contain plaintext; and there is no independent audit trail, trusted identity/timestamp, secure deletion, recovery, backup validation, or external key custody. Do not use with regulated/high-impact documents without redesign and independent assessment.
 
 ## Unused, placeholder, and disconnected code
 
