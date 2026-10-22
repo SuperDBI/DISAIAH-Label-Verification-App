@@ -60,7 +60,7 @@ fi
 
 websockify --web="$WEB_ROOT" "$PORT" 127.0.0.1:5900 &
 
-# Local PDF services (ClamAV + parser) run in this container; Docker-in-Docker is unavailable on Render.
+# Local PDF services (ClamAV + parser) run in this container; Docker-in-Docker is unavailable on DigitalOcean App Platform.
 # Everything binds to loopback and shares a per-start token with the app.
 PDF_STATE=/tmp/secrev-pdf
 mkdir -p "$PDF_STATE/database" "$PDF_STATE/tmp"
@@ -89,10 +89,22 @@ MaxFileSize 30M
 MaxScanSize 100M
 MaxThreads 2
 MaxQueue 4
+ConcurrentDatabaseReload no
+DetectPUA no
+ScanArchive no
+ScanMail no
+ScanHTML no
+ScanOLE2 no
+ScanPE no
+ScanELF no
 EOF
   # Fail closed: without signatures clamd never starts, so /health/ready stays unhealthy and no PDF is parsed.
-  freshclam --config-file="$PDF_STATE/freshclam.conf" >"$PDF_STATE/freshclam.log" 2>&1 || {
-    echo "ClamAV signature download failed; PDF scanning stays unavailable."; return 0; }
+  local attempt
+  for attempt in 1 2 3; do
+    freshclam --config-file="$PDF_STATE/freshclam.conf" >"$PDF_STATE/freshclam.log" 2>&1 && break
+    [[ "$attempt" == 3 ]] && { echo "ClamAV signature download failed; PDF scanning stays unavailable."; return 0; }
+    sleep 15
+  done
   clamd --config-file="$PDF_STATE/clamd.conf" >"$PDF_STATE/clamd.log" 2>&1 &
   for _ in $(seq 1 120); do
     (exec 3<>/dev/tcp/127.0.0.1/3310) 2>/dev/null && break
@@ -100,12 +112,14 @@ EOF
   done
   ENABLE_LOCAL_CLAMAV=true CLAMAV_HOST=127.0.0.1 CLAMAV_PORT=3310 \
     TESSERACT_PATH=/usr/bin/tesseract TMPDIR="$PDF_STATE/tmp" \
+    DOTNET_GCHeapHardLimit=0x20000000 DOTNET_GCConserveMemory=7 DOTNET_TieredPGO=0 \
     dotnet /opt/pdf-sandbox/PdfSandbox.dll --urls "$SECREV_PDF_PARSER_ENDPOINT" >"$PDF_STATE/parser.log" 2>&1 &
 }
 start_pdf_services &
 
 # Relaunch the app if it is closed so the browser never shows an empty desktop.
 while true; do
-  dotnet /app/SecRev.dll || true
+  # Per-process GC caps: .NET otherwise sizes each process against the whole container limit.
+  DOTNET_GCHeapHardLimit=0x40000000 DOTNET_GCConserveMemory=5 DOTNET_TieredPGO=0 dotnet /app/SecRev.dll || true
   sleep 1
 done
