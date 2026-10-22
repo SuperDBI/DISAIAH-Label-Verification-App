@@ -516,10 +516,11 @@ public partial class MainWindow : Window
     {
         if (!RequireSession()) return;
 
-        IReadOnlyList<IStorageFile> selected;
+        string? uploadedPath = null;
+        string? selectedPath = null;
         try
         {
-            selected = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            var selected = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 Title = "Import PDF or UTF-8 text document",
                 AllowMultiple = false,
@@ -528,18 +529,21 @@ public partial class MainWindow : Window
                     new FilePickerFileType("PDF and text documents") { Patterns = new[] { "*.pdf", "*.txt", "*.md", "*.csv", "*.json" } }
                 }
             });
+            if (selected.Count == 0) return;
+            selectedPath = selected[0].Path.LocalPath;
         }
         catch (Exception ex)
         {
             _runtimeLog.Add($"File picker failed ({ex.GetType().Name}); content was not written to the runtime log.");
-            await MessageBoxAsync("File picker unavailable", "The file picker could not be opened in this environment. No document was imported.");
-            return;
+            // Hosted demo: no desktop portal, so fall back to files uploaded through the web page.
+            uploadedPath = await PromptUploadedFileAsync();
+            if (uploadedPath is null) return;
+            selectedPath = uploadedPath;
         }
-        if (selected.Count == 0) return;
 
         try
         {
-            var filePath = selected[0].Path.LocalPath;
+            var filePath = selectedPath;
             var info = new FileInfo(filePath);
             var isPdf = string.Equals(info.Extension, ".pdf", StringComparison.OrdinalIgnoreCase);
             var maxBytes = isPdf ? PdfStaticInspector.MaxPdfBytes : MaxDocumentBytes;
@@ -622,6 +626,13 @@ public partial class MainWindow : Window
         {
             _runtimeLog.Add($"Document import failed ({ex.GetType().Name}); content was not written to the runtime log.");
             await MessageBoxAsync("Import failed", "The file could not be imported or scanned due to an unexpected local error. Any imported source remains encrypted; no PDF extraction was accepted.");
+        }
+        finally
+        {
+            if (uploadedPath is not null)
+            {
+                try { File.Delete(uploadedPath); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            }
         }
     }
 
@@ -3422,6 +3433,55 @@ public partial class MainWindow : Window
         DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var timestamp)
             ? timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture)
             : "timestamp unavailable";
+
+    // Lists files uploaded through the container's web upload page (SECREV_UPLOAD_DIR).
+    private async Task<string?> PromptUploadedFileAsync()
+    {
+        var dir = Environment.GetEnvironmentVariable("SECREV_UPLOAD_DIR");
+        if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))
+        {
+            await MessageBoxAsync("File picker unavailable", "The file picker could not be opened in this environment. No document was imported.");
+            return null;
+        }
+        var files = new DirectoryInfo(dir).GetFiles().OrderByDescending(f => f.LastWriteTimeUtc).Take(50).ToList();
+        if (files.Count == 0)
+        {
+            await MessageBoxAsync("No uploaded documents", "This hosted desktop cannot see your computer's files. Upload a PDF or text file on the SecRev start page (the page with the Start the desktop button), then choose Import document again.");
+            return null;
+        }
+        var list = new ListBox { ItemsSource = files.Select(f => $"{f.Name[(f.Name.IndexOf('-') + 1)..]}  ({f.Length:N0} bytes)").ToList(), SelectedIndex = 0, Height = 200 };
+        var importButton = new Button { Content = "Import", Padding = new Avalonia.Thickness(18, 8) };
+        var cancelButton = new Button { Content = "Cancel", Padding = new Avalonia.Thickness(18, 8) };
+        var dialog = new Window
+        {
+            Title = "Choose an uploaded document",
+            Width = 520,
+            SizeToContent = Avalonia.Controls.SizeToContent.Height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Content = new StackPanel
+            {
+                Margin = new Avalonia.Thickness(20),
+                Spacing = 12,
+                Children =
+                {
+                    new TextBlock { Text = "The desktop file picker is unavailable here. Select a document uploaded through the start page. It is removed after import.", TextWrapping = Avalonia.Media.TextWrapping.Wrap },
+                    list,
+                    new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right, Children = { cancelButton, importButton } }
+                }
+            }
+        };
+        string? chosen = null;
+        importButton.Click += (_, _) =>
+        {
+            if (list.SelectedIndex >= 0) chosen = files[list.SelectedIndex].FullName;
+            dialog.Close();
+        };
+        cancelButton.Click += (_, _) => dialog.Close();
+        AttachRuntimeProtections(dialog);
+        await dialog.ShowDialog(this);
+        return chosen;
+    }
 
     private async Task MessageBoxAsync(string title, string message)
     {

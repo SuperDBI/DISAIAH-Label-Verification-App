@@ -18,6 +18,7 @@ COPY --from=build /out/ ./
 COPY --from=build /pdf-sandbox/ /opt/pdf-sandbox/
 COPY --from=build --chown=app:app ["/src/SAMPLE Forms", "/data/SAMPLE Forms"]
 COPY scripts/render-desktop.sh /usr/local/bin/render-desktop.sh
+COPY scripts/websockify-upload.py /usr/local/bin/websockify-upload.py
 RUN mkdir -p /data/.config && chown -R app:app /data
 RUN chmod +x /usr/local/bin/render-desktop.sh
 # Fluxbox pops up a blocking "no wallpaper setter" dialog over the app unless fbsetbg exists.

@@ -40,6 +40,28 @@ cat > "$WEB_ROOT/index.html" <<'HTML'
 <h1>SecRev Demo</h1>
 <p>This starts the full SecRev desktop app, streamed to your browser. Nothing connects until you click the button.</p>
 <a class="start" href="/vnc.html?autoconnect=true&amp;resize=scale&amp;path=websockify">Start the desktop</a>
+<h2>Upload a document to import</h2>
+<p>The desktop runs on the server and cannot see your computer. Upload a PDF or text file here, then use Import document in the desktop and pick it from the list.</p>
+<form id="up">
+  <input type="file" id="file" accept=".pdf,.txt,.md,.csv,.json" required>
+  <input type="password" id="pw" placeholder="Viewer password (if one is set)">
+  <button type="submit">Upload</button>
+</form>
+<p id="status" class="note" role="status"></p>
+<script>
+document.getElementById('up').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = document.getElementById('file').files[0];
+  const st = document.getElementById('status');
+  if (!f) return;
+  st.textContent = 'Uploading...';
+  try {
+    const r = await fetch('/upload', { method: 'POST', body: f, headers: {
+      'X-Upload-Name': f.name, 'X-Upload-Password': document.getElementById('pw').value } });
+    st.textContent = await r.text();
+  } catch (err) { st.textContent = 'Upload failed.'; }
+});
+</script>
 <ul class="note">
   <li>The first load can take a minute if the service was asleep, and the stream may feel slow on a small instance.</li>
   <li>This is a disposable demo: the vault and the first-Custodian token reset on every restart or redeploy. Do not use real data.</li>
@@ -58,7 +80,11 @@ if [[ -z "${SECREV_BOOTSTRAP_TOKEN:-}" ]]; then
   echo "SecRev bootstrap token (first Custodian): $SECREV_BOOTSTRAP_TOKEN"
 fi
 
-websockify --web="$WEB_ROOT" "$PORT" 127.0.0.1:5900 &
+# Wrapper adds POST /upload; the app lists these files when the desktop file picker is unavailable.
+export SECREV_UPLOAD_DIR=/tmp/secrev-uploads
+mkdir -p "$SECREV_UPLOAD_DIR"
+chmod 700 "$SECREV_UPLOAD_DIR"
+python3 /usr/local/bin/websockify-upload.py --web="$WEB_ROOT" "$PORT" 127.0.0.1:5900 &
 
 # Local PDF services (ClamAV + parser) run in this container; Docker-in-Docker is unavailable on DigitalOcean App Platform.
 # Everything binds to loopback and shares a per-start token with the app.
