@@ -29,7 +29,7 @@ The setup validates the .NET desktop build/tests and native Linux compilation. I
 
 #### DigitalOcean Droplet deployment (one container, persistent vault)
 
-`deploy/digitalocean/deploy.sh` creates one Droplet (`s-2vcpu-4gb`) running a single container built from `Dockerfile.desktop`, plus a **1 GiB** block-storage volume (DigitalOcean's minimum size). The container holds the full desktop UI (streamed to the browser via noVNC), ClamAV, Tesseract and the PDF parser, so every feature runs inside it. Only the encrypted vault directory (`/data/.config/SecRev`, i.e. `vault.enc`) lives on the volume; it is mounted at `/mnt/secrev_data/vault` on the host, formatted only if blank, and survives container rebuilds and Droplet restarts. ClamAV signatures (several hundred MB) are intentionally kept off the volume and re-downloaded on each start.
+`deploy/digitalocean/deploy.sh` creates one Droplet (`s-1vcpu-2gb`) running a single container built from `Dockerfile.desktop`, plus a **1 GiB** block-storage volume (DigitalOcean's minimum size). The container holds the full desktop UI (streamed to the browser via noVNC), ClamAV, Tesseract and the PDF parser, so every feature runs inside it. Only the encrypted vault directory (`/data/.config/SecRev`, i.e. `vault.enc`) lives on the volume; it is mounted at `/mnt/secrev_data/vault` on the host, formatted only if blank, and survives container rebuilds and Droplet restarts. ClamAV signatures (several hundred MB) are intentionally kept off the volume and re-downloaded on each start.
 
 ```sh
 doctl auth init
