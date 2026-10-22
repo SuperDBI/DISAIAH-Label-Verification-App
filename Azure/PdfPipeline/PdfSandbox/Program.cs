@@ -451,6 +451,9 @@ app.MapGet("/health/ready", async (ClamAvScanner scanner, CancellationToken canc
     if (!string.Equals(builder.Configuration["ENABLE_LOCAL_CLAMAV"], "true", StringComparison.OrdinalIgnoreCase))
         return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 
+    if (scanner.OnDemand)
+        return scanner.CanStartOnDemand() ? Results.Ok(new { status = "ready" }) : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+
     try
     {
         var verdict = await scanner.ScanAsync(Array.Empty<byte>(), cancellationToken);
@@ -690,11 +693,139 @@ internal sealed class ClamAvScanner
     private const int MaximumResponseLength = 4096;
     private readonly string _host = Environment.GetEnvironmentVariable("CLAMAV_HOST") ?? "127.0.0.1";
     private readonly int _port = int.TryParse(Environment.GetEnvironmentVariable("CLAMAV_PORT"), out var port) ? port : 3310;
+    // On-demand mode: clamd (about 1 GB with signatures) only runs while scans are happening.
+    private readonly string? _onDemandConfig = Environment.GetEnvironmentVariable("CLAMAV_ONDEMAND_CONF");
+    private readonly string _clamdPath = Environment.GetEnvironmentVariable("CLAMAV_BINARY") ?? "/usr/sbin/clamd";
+    private static readonly TimeSpan IdleStop = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(90);
+    private readonly SemaphoreSlim _lifecycle = new(1, 1);
+    private Process? _clamd;
+    private int _activeScans;
+    private long _idleToken;
+
+    public bool OnDemand => !string.IsNullOrWhiteSpace(_onDemandConfig);
+
+    // Ready when clamd can be started and signatures were downloaded; never starts clamd, so health checks stay cheap.
+    public bool CanStartOnDemand()
+    {
+        if (!OnDemand || !File.Exists(_clamdPath) || !File.Exists(_onDemandConfig)) return false;
+        var databaseDirectory = File.ReadLines(_onDemandConfig!)
+            .Select(line => line.Split(' ', 2))
+            .Where(parts => parts.Length == 2 && parts[0] == "DatabaseDirectory")
+            .Select(parts => parts[1].Trim())
+            .FirstOrDefault();
+        return databaseDirectory is not null && Directory.Exists(databaseDirectory) &&
+            Directory.EnumerateFiles(databaseDirectory).Any(f => f.EndsWith(".cvd", StringComparison.Ordinal) || f.EndsWith(".cld", StringComparison.Ordinal));
+    }
 
     public async Task<string> ScanAsync(byte[] bytes, CancellationToken cancellationToken)
     {
         if (_port is <= 0 or > 65535 || string.IsNullOrWhiteSpace(_host))
             throw new InvalidOperationException("ClamAV endpoint configuration is invalid.");
+        if (!OnDemand) return await ScanCoreAsync(bytes, cancellationToken);
+
+        await EnsureRunningAsync(cancellationToken);
+        try
+        {
+            return await ScanCoreAsync(bytes, cancellationToken);
+        }
+        finally
+        {
+            ReleaseScan();
+        }
+    }
+
+    private async Task EnsureRunningAsync(CancellationToken cancellationToken)
+    {
+        await _lifecycle.WaitAsync(cancellationToken);
+        try
+        {
+            Interlocked.Increment(ref _activeScans);
+            Interlocked.Increment(ref _idleToken);
+            if (_clamd is { HasExited: false }) return;
+            _clamd?.Dispose();
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = _clamdPath,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            startInfo.ArgumentList.Add("--config-file=" + _onDemandConfig);
+            var process = new Process { StartInfo = startInfo };
+            if (!process.Start())
+                throw new InvalidOperationException("ClamAV could not be started.");
+            process.OutputDataReceived += (_, _) => { };
+            process.ErrorDataReceived += (_, _) => { };
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            _clamd = process;
+
+            using var startup = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            startup.CancelAfter(StartupTimeout);
+            while (true)
+            {
+                if (process.HasExited)
+                    throw new InvalidOperationException("ClamAV exited during startup.");
+                try
+                {
+                    using var probe = new TcpClient();
+                    await probe.ConnectAsync(_host, _port, startup.Token);
+                    return;
+                }
+                catch (SocketException)
+                {
+                    await Task.Delay(500, startup.Token);
+                }
+            }
+        }
+        catch
+        {
+            Interlocked.Decrement(ref _activeScans);
+            StopClamd();
+            throw;
+        }
+        finally
+        {
+            _lifecycle.Release();
+        }
+    }
+
+    private void ReleaseScan()
+    {
+        if (Interlocked.Decrement(ref _activeScans) > 0) return;
+        var token = Interlocked.Increment(ref _idleToken);
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(IdleStop);
+            await _lifecycle.WaitAsync();
+            try
+            {
+                if (Interlocked.Read(ref _idleToken) == token && Volatile.Read(ref _activeScans) == 0) StopClamd();
+            }
+            finally
+            {
+                _lifecycle.Release();
+            }
+        });
+    }
+
+    private void StopClamd()
+    {
+        try
+        {
+            if (_clamd is { HasExited: false }) _clamd.Kill(entireProcessTree: true);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+        }
+        _clamd?.Dispose();
+        _clamd = null;
+    }
+
+    private async Task<string> ScanCoreAsync(byte[] bytes, CancellationToken cancellationToken)
+    {
 
         using var client = new TcpClient();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

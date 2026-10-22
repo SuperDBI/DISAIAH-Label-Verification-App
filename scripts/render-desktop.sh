@@ -126,19 +126,15 @@ ScanOLE2 no
 ScanPE no
 ScanELF no
 EOF
-  # Fail closed: without signatures clamd never starts, so /health/ready stays unhealthy and no PDF is parsed.
+  # Fail closed: without signatures the parser is never started, so no PDF is parsed.
   local attempt
   for attempt in 1 2 3; do
     freshclam --config-file="$PDF_STATE/freshclam.conf" >"$PDF_STATE/freshclam.log" 2>&1 && break
     [[ "$attempt" == 3 ]] && { echo "ClamAV signature download failed; PDF scanning stays unavailable."; return 0; }
     sleep 15
   done
-  clamd --config-file="$PDF_STATE/clamd.conf" >"$PDF_STATE/clamd.log" 2>&1 &
-  for _ in $(seq 1 120); do
-    (exec 3<>/dev/tcp/127.0.0.1/3310) 2>/dev/null && break
-    sleep 1
-  done
-  ENABLE_LOCAL_CLAMAV=true CLAMAV_HOST=127.0.0.1 CLAMAV_PORT=3310 \
+  # clamd is started by the parser per scan and stopped when idle, so its ~1 GB is not held while idle.
+  ENABLE_LOCAL_CLAMAV=true CLAMAV_ONDEMAND_CONF="$PDF_STATE/clamd.conf" CLAMAV_BINARY="$(command -v clamd)" CLAMAV_HOST=127.0.0.1 CLAMAV_PORT=3310 \
     TESSERACT_PATH=/usr/bin/tesseract TMPDIR="$PDF_STATE/tmp" \
     DOTNET_GCHeapHardLimit=0x10000000 DOTNET_GCConserveMemory=9 DOTNET_gcConcurrent=0 DOTNET_TieredPGO=0 MALLOC_ARENA_MAX=2 \
     dotnet /opt/pdf-sandbox/PdfSandbox.dll --urls "$SECREV_PDF_PARSER_ENDPOINT" >"$PDF_STATE/parser.log" 2>&1 &
