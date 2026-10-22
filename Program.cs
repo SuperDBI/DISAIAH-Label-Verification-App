@@ -39,7 +39,12 @@ class Program
         builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 4 * 1024 * 1024);
         var app = builder.Build();
 
-        app.MapGet("/", () => Results.Ok(new { service = "SecRev API", endpoints = new[] { "GET /health", "POST /process" } }));
+        app.MapGet("/", (HttpContext ctx) =>
+        {
+            ctx.Response.Headers["Content-Security-Policy"] = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'";
+            ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            return Results.Content(ApiWebPage.Html, "text/html; charset=utf-8");
+        });
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
         app.MapPost("/process", (ProcessRequest? request) =>
