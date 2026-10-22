@@ -20,9 +20,30 @@ start_background() {
     rm -f "$pid_file"
   fi
 
-  nohup "$@" >>"$log_file" 2>&1 </dev/null &
+  # x11vnc installs its own SIGHUP handler (nohup is ignored), so detach into a new session.
+  setsid nohup "$@" >>"$log_file" 2>&1 </dev/null 9>&- &
   echo "$!" > "$pid_file"
 }
+
+start_app() {
+  # Rebuild if the executable is absent, then launch the Avalonia desktop in the virtual display.
+  if ! pgrep -f '[S]ecRev.dll|/SecRev$' >/dev/null 2>&1; then
+    if [[ ! -f "$ROOT_DIR/bin/Debug/net10.0/SecRev.dll" ]]; then
+      dotnet build "$ROOT_DIR/SecRev.csproj"
+    fi
+    rm -f "$RUNTIME_DIR/secrev-app.pid"
+    start_background "$RUNTIME_DIR/secrev-app.pid" "$RUNTIME_DIR/secrev-app.log" \
+      env DISPLAY=:1 dotnet "$ROOT_DIR/bin/Debug/net10.0/SecRev.dll"
+  fi
+}
+
+# Invoked by x11vnc -afteraccept when a browser connects: relaunch SecRev if it exited.
+if [[ "${1:-}" == "--app-only" ]]; then
+  exec 9>"$RUNTIME_DIR/secrev-app.lock"
+  flock 9
+  start_app
+  exit 0
+fi
 
 if ! pgrep -f '[X]vfb :1' >/dev/null 2>&1; then
   rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
@@ -52,7 +73,8 @@ if ! pgrep -f '[x]11vnc.*5900' >/dev/null 2>&1; then
   # private noVNC HTTP port below; do not expose port 5900 or change the port to public.
   start_background "$RUNTIME_DIR/secrev-x11vnc.pid" "$RUNTIME_DIR/secrev-x11vnc.log" \
     x11vnc -display :1 -localhost -nopw -forever -shared -rfbport 5900 \
-      -gone "$ROOT_DIR/.devcontainer/stop-codespace.sh --browser-closed"
+      -afteraccept "bash $ROOT_DIR/.devcontainer/start-codespace.sh --app-only" \
+      -gone "bash $ROOT_DIR/.devcontainer/stop-codespace.sh --browser-closed"
 fi
 
 mkdir -p "$WEB_ROOT"
@@ -77,15 +99,7 @@ if ! pgrep -f '[w]ebsockify.*6080' >/dev/null 2>&1; then
     websockify --web="$WEB_ROOT" 6080 127.0.0.1:5900
 fi
 
-# Codespaces postCreateCommand builds and tests once. Rebuild on restart if the
-# executable is absent, then launch the Avalonia desktop in the virtual display.
-if ! pgrep -f '[S]ecRev.dll|/SecRev$' >/dev/null 2>&1; then
-  if [[ ! -f "$ROOT_DIR/bin/Debug/net10.0/SecRev.dll" ]]; then
-    dotnet build "$ROOT_DIR/SecRev.csproj"
-  fi
-  start_background "$RUNTIME_DIR/secrev-app.pid" "$RUNTIME_DIR/secrev-app.log" \
-    env DISPLAY=:1 dotnet "$ROOT_DIR/bin/Debug/net10.0/SecRev.dll"
-fi
+start_app
 
 printf 'SecRev Codespaces desktop started. Open private forwarded port 6080 to view it.\n'
 printf 'App log: %s/secrev-app.log\n' "$RUNTIME_DIR"
