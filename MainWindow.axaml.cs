@@ -405,6 +405,7 @@ public partial class MainWindow : Window
             AccountSessionPanel.IsVisible = true;
             BootstrapTokenBox.IsVisible = _vault.RequiresBootstrap;
             BootstrapPasswordConfirmBox.IsVisible = _vault.RequiresBootstrap;
+            PrefillDemoBootstrapToken();
             AccountPrompt.Text = _vault.RequiresBootstrap
                 ? "First-use setup: enter the externally generated one-time token and create the initial Custodian account."
                 : "Sign in with your named local account.";
@@ -435,6 +436,17 @@ public partial class MainWindow : Window
         }
     }
 
+    // Demo-only convenience, enabled solely by the Codespaces start script; never logged.
+    private void PrefillDemoBootstrapToken()
+    {
+        if (!_vault.RequiresBootstrap
+            || Environment.GetEnvironmentVariable("SECREV_PREFILL_BOOTSTRAP_TOKEN") != "1")
+            return;
+        var token = Environment.GetEnvironmentVariable("SECREV_BOOTSTRAP_TOKEN");
+        if (!string.IsNullOrWhiteSpace(token))
+            BootstrapTokenBox.Text = token.Trim();
+    }
+
     private async void OnAccountActionClick(object? sender, RoutedEventArgs e)
     {
         try
@@ -455,6 +467,7 @@ public partial class MainWindow : Window
             BootstrapTokenBox.Text = string.Empty;
             AccountPasswordBox.Text = string.Empty;
             BootstrapPasswordConfirmBox.Text = string.Empty;
+            PrefillDemoBootstrapToken();
             SessionStatus.Text = "Account authentication failed";
             _runtimeLog.Add("Local account authentication or provisioning failed.");
             await MessageBoxAsync("Account sign-in failed", ex is UnauthorizedAccessException
@@ -1524,7 +1537,7 @@ public partial class MainWindow : Window
             RefreshStageButtons();
             await MessageBoxAsync("Custodian decision saved", $"The Stage 4 {decision} decision and note were signed locally after a valid Stage 3 Analyst submission. This is not a trusted identity or timestamp.");
         }
-        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or CryptographicException or IOException or FormatException or System.Text.Json.JsonException)
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or UnauthorizedAccessException or CryptographicException or IOException or FormatException or System.Text.Json.JsonException)
         {
             _runtimeLog.Add("Custodian decision failed.");
             await MessageBoxAsync("Custodian decision failed", ex.Message);

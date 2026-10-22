@@ -68,6 +68,8 @@ On macOS, the app continues to use the local ClamAV/Tesseract launcher described
 3. Sign in with a named local Analyst or Custodian account. The vault passphrase is still required for every session.
 4. Analysts import supported files; each import is encrypted and persisted before processing. Custodians manage accounts, review submissions, make Stage 4 decisions, delete records, and transfer permanent records.
 
+In the Codespaces preview only, `.devcontainer/start-codespace.sh` generates a fresh `SECREV_BOOTSTRAP_TOKEN` (stored with mode 600 in the runtime directory, so a rebuild creates a new one) and sets `SECREV_PREFILL_BOOTSTRAP_TOKEN=1`, which makes the app prefill the token field during first-Custodian setup. This demo convenience removes the out-of-band nature of the token; do not use it outside the disposable preview.
+
 Local account permissions/signatures are workflow controls, not an independent identity authority or security boundary. The bootstrap token is not recoverable after setup.
 
 ## Analyst workflow

@@ -25,9 +25,25 @@ start_background() {
   echo "$!" > "$pid_file"
 }
 
+provision_demo_bootstrap_token() {
+  # Demo-only: the token lives in the runtime dir (cleared on rebuild), so each rebuilt
+  # Codespace gets a fresh one that the app prefills into the first-Custodian form.
+  local token_file="$RUNTIME_DIR/secrev-bootstrap-token"
+  if [[ -z "${SECREV_BOOTSTRAP_TOKEN:-}" ]]; then
+    if [[ ! -s "$token_file" ]]; then
+      (umask 077 && openssl rand -hex 32 > "$token_file")
+    fi
+    chmod 600 "$token_file"
+    SECREV_BOOTSTRAP_TOKEN="$(cat "$token_file")"
+  fi
+  export SECREV_BOOTSTRAP_TOKEN
+  export SECREV_PREFILL_BOOTSTRAP_TOKEN=1
+}
+
 start_app() {
   # Rebuild if the executable is absent, then launch the Avalonia desktop in the virtual display.
   if ! pgrep -f '[S]ecRev.dll|/SecRev$' >/dev/null 2>&1; then
+    provision_demo_bootstrap_token
     if [[ ! -f "$ROOT_DIR/bin/Debug/net10.0/SecRev.dll" ]]; then
       dotnet build "$ROOT_DIR/SecRev.csproj"
     fi
