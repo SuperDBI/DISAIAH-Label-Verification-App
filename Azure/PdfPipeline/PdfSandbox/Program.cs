@@ -29,7 +29,37 @@ builder.Services.AddSingleton<PdfiumRenderer>();
 builder.Services.AddSingleton<PdfParsingGate>();
 builder.Services.AddSingleton<ClamAvScanner>();
 builder.Services.AddSingleton<TesseractOcrService>();
+builder.Services.AddSingleton<IdleShutdown>();
 var app = builder.Build();
+
+// On-demand lifetime: exit 5 s after the last upload finishes (45 s grace after launch for the first one).
+// A new upload cancels a pending exit. Health checks do not count as activity.
+var idleShutdown = app.Services.GetRequiredService<IdleShutdown>();
+if (builder.Configuration["PDF_PARSER_IDLE_EXIT"] == "1")
+{
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments("/health"))
+        {
+            await next();
+            return;
+        }
+        idleShutdown.RequestStarted();
+        try
+        {
+            await next();
+        }
+        finally
+        {
+            // Return the large PDF/image buffers to the OS before the idle timer runs out.
+            System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+            idleShutdown.RequestFinished();
+        }
+    });
+    idleShutdown.Arm();
+}
+app.Lifetime.ApplicationStopping.Register(() => app.Services.GetRequiredService<ClamAvScanner>().StopNow());
 
 // No Azure SDK, cloud credentials, storage identity, or outbound networking belong in this service.
 app.MapPost("/internal/render-first-page", async (HttpRequest request, PdfiumRenderer renderer, PdfParsingGate parsingGate, CancellationToken cancellationToken) =>
@@ -44,7 +74,8 @@ app.MapPost("/internal/render-first-page", async (HttpRequest request, PdfiumRen
     if (request.ContentLength is <= 0 or > maximumPdfBytes)
         return Results.Problem(statusCode: StatusCodes.Status413PayloadTooLarge, title: "PDF size limit exceeded.");
 
-    await parsingGate.Semaphore.WaitAsync(cancellationToken);
+    if (!await parsingGate.TryAcquireAsync(cancellationToken))
+        return Results.Problem(statusCode: StatusCodes.Status429TooManyRequests, title: "The parser is busy with another PDF; retry shortly.");
     byte[]? bytes = null;
     try
     {
@@ -73,7 +104,7 @@ app.MapPost("/internal/render-first-page", async (HttpRequest request, PdfiumRen
     finally
     {
         if (bytes is not null) System.Security.Cryptography.CryptographicOperations.ZeroMemory(bytes);
-        parsingGate.Semaphore.Release();
+        parsingGate.Release();
     }
 }).DisableAntiforgery();
 
@@ -86,7 +117,8 @@ app.MapPost("/internal/extract-text-pdfpig", async (HttpRequest request, PdfPars
     var parserSlotAcquired = false;
     try
     {
-        await parsingGate.Semaphore.WaitAsync(cancellationToken);
+        if (!await parsingGate.TryAcquireAsync(cancellationToken))
+            return Results.Problem(statusCode: StatusCodes.Status429TooManyRequests, title: "The parser is busy with another PDF; retry shortly.");
         parserSlotAcquired = true;
         bytes = await ReadBoundedPdfAsync(request, cancellationToken);
         using var pdfStream = new MemoryStream(bytes, writable: false);
@@ -184,7 +216,7 @@ app.MapPost("/internal/extract-text-pdfpig", async (HttpRequest request, PdfPars
     finally
     {
         if (bytes is not null) CryptographicOperations.ZeroMemory(bytes);
-        if (parserSlotAcquired) parsingGate.Semaphore.Release();
+        if (parserSlotAcquired) parsingGate.Release();
     }
 }).DisableAntiforgery();
 
@@ -204,7 +236,8 @@ app.MapPost("/local/scan-and-extract-pdf-images", async (
     var parserSlotAcquired = false;
     try
     {
-        await parsingGate.Semaphore.WaitAsync(cancellationToken);
+        if (!await parsingGate.TryAcquireAsync(cancellationToken))
+            return Results.Problem(statusCode: StatusCodes.Status429TooManyRequests, title: "The parser is busy with another PDF; retry shortly.");
         parserSlotAcquired = true;
         bytes = await ReadBoundedPdfAsync(request, cancellationToken);
 
@@ -252,7 +285,7 @@ app.MapPost("/local/scan-and-extract-pdf-images", async (
     finally
     {
         if (bytes is not null) CryptographicOperations.ZeroMemory(bytes);
-        if (parserSlotAcquired) parsingGate.Semaphore.Release();
+        if (parserSlotAcquired) parsingGate.Release();
     }
 }).DisableAntiforgery();
 
@@ -275,7 +308,8 @@ app.MapPost("/local/scan-and-extract-pdf-review", async (
     var parserSlotAcquired = false;
     try
     {
-        await parsingGate.Semaphore.WaitAsync(cancellationToken);
+        if (!await parsingGate.TryAcquireAsync(cancellationToken))
+            return Results.Problem(statusCode: StatusCodes.Status429TooManyRequests, title: "The parser is busy with another PDF; retry shortly.");
         parserSlotAcquired = true;
         bytes = await ReadBoundedPdfAsync(request, cancellationToken);
             string verdict;
@@ -441,7 +475,7 @@ app.MapPost("/local/scan-and-extract-pdf-review", async (
         if (bytes is not null) CryptographicOperations.ZeroMemory(bytes);
         if (ocrInputBuffers is not null)
             foreach (var imageBytes in ocrInputBuffers) CryptographicOperations.ZeroMemory(imageBytes);
-        if (parserSlotAcquired) parsingGate.Semaphore.Release();
+        if (parserSlotAcquired) parsingGate.Release();
     }
 }).DisableAntiforgery();
 
@@ -480,37 +514,109 @@ static string SafeClamAvError(string message) => new(message.Where(ch => char.Is
 
 static async Task<byte[]> ReadBoundedPdfAsync(HttpRequest request, CancellationToken cancellationToken)
 {
-    if (request.ContentLength is <= 0 or > maximumPdfBytes)
+    if (request.ContentLength is not > 0 or > maximumPdfBytes)
         throw new InvalidDataException("PDF size limit exceeded.");
-    await using var input = new MemoryStream();
-    var buffer = new byte[64 * 1024];
+    // Read straight into one exactly-sized buffer: no growing MemoryStream, no extra copy.
+    var bytes = new byte[(int)request.ContentLength.Value];
     try
     {
-        while (true)
+        var total = 0;
+        while (total < bytes.Length)
         {
-            var read = await request.Body.ReadAsync(buffer.AsMemory(), cancellationToken);
-            if (read == 0) break;
-            if (input.Length + read > maximumPdfBytes)
-                throw new InvalidDataException("PDF size limit exceeded.");
-            await input.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            var read = await request.Body.ReadAsync(bytes.AsMemory(total), cancellationToken);
+            if (read == 0) throw new InvalidDataException("PDF upload was incomplete.");
+            total += read;
         }
-        var bytes = input.ToArray();
         if (bytes.Length < 8 || !bytes.AsSpan(0, 5).SequenceEqual("%PDF-"u8))
-        {
-            CryptographicOperations.ZeroMemory(bytes);
             throw new InvalidDataException("Invalid PDF header.");
-        }
         return bytes;
     }
-    finally
+    catch
     {
-        CryptographicOperations.ZeroMemory(buffer);
+        CryptographicOperations.ZeroMemory(bytes);
+        throw;
     }
 }
 
+// One PDF is parsed at a time and at most one more may wait; further uploads are rejected so queued
+// requests (e.g. repeated re-uploads) cannot pile up in memory. Request bodies are only read after the slot is held.
 internal sealed class PdfParsingGate
 {
-    public SemaphoreSlim Semaphore { get; } = new(1, 1);
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private int _inFlight;
+
+    public async Task<bool> TryAcquireAsync(CancellationToken cancellationToken)
+    {
+        if (Interlocked.Increment(ref _inFlight) > 2)
+        {
+            Interlocked.Decrement(ref _inFlight);
+            return false;
+        }
+        try
+        {
+            await _semaphore.WaitAsync(cancellationToken);
+            return true;
+        }
+        catch
+        {
+            Interlocked.Decrement(ref _inFlight);
+            throw;
+        }
+    }
+
+    public void Release()
+    {
+        _semaphore.Release();
+        Interlocked.Decrement(ref _inFlight);
+    }
+}
+
+// Stops the parser process after it has been idle, so its memory returns to the container between uploads.
+internal sealed class IdleShutdown
+{
+    private static readonly TimeSpan IdleAfterRequest = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan StartupGrace = TimeSpan.FromSeconds(45);
+    private readonly object _lock = new();
+    private readonly IHostApplicationLifetime _lifetime;
+    private int _active;
+    private long _generation;
+
+    public IdleShutdown(IHostApplicationLifetime lifetime) => _lifetime = lifetime;
+
+    public void Arm(TimeSpan? delay = null) => Schedule(delay ?? StartupGrace);
+
+    public void RequestStarted()
+    {
+        lock (_lock)
+        {
+            _active++;
+            _generation++;
+        }
+    }
+
+    public void RequestFinished()
+    {
+        lock (_lock)
+        {
+            if (--_active > 0) return;
+        }
+        Schedule(IdleAfterRequest);
+    }
+
+    private void Schedule(TimeSpan delay)
+    {
+        long generation;
+        lock (_lock) generation = ++_generation;
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(delay);
+            lock (_lock)
+            {
+                if (_generation != generation || _active > 0) return;
+            }
+            _lifetime.StopApplication();
+        });
+    }
 }
 
 internal sealed record ExtractedPage(int PageNumber, string Text, string Source = "PdfPig selectable text", string OcrText = "", string? SelectableText = null);
@@ -696,7 +802,7 @@ internal sealed class ClamAvScanner
     // On-demand mode: clamd (about 1 GB with signatures) only runs while scans are happening.
     private readonly string? _onDemandConfig = Environment.GetEnvironmentVariable("CLAMAV_ONDEMAND_CONF");
     private readonly string _clamdPath = Environment.GetEnvironmentVariable("CLAMAV_BINARY") ?? "/usr/sbin/clamd";
-    private static readonly TimeSpan IdleStop = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan IdleStop = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(90);
     private readonly SemaphoreSlim _lifecycle = new(1, 1);
     private Process? _clamd;
@@ -811,6 +917,14 @@ internal sealed class ClamAvScanner
         });
     }
 
+    // Used at parser shutdown so clamd never outlives the parser.
+    public void StopNow()
+    {
+        _lifecycle.Wait();
+        try { StopClamd(); }
+        finally { _lifecycle.Release(); }
+    }
+
     private void StopClamd()
     {
         try
@@ -886,41 +1000,33 @@ internal sealed class PdfiumRenderer
     {
         if (source.Length is <= 0 or > 25 * 1024 * 1024)
             throw new InvalidDataException("PDF size is outside the configured limit.");
-        var bytes = source.ToArray();
-        try
+        lock (InitializationLock)
         {
-            lock (InitializationLock)
+            if (!_initialized)
             {
-                if (!_initialized)
-                {
-                    fpdfview.FPDF_InitLibrary();
-                    _initialized = true;
-                }
-            }
-            unsafe
-            {
-                fixed (byte* pointer = bytes)
-                {
-                    var document = fpdfview.FPDF_LoadMemDocument(new IntPtr(pointer), bytes.Length, null);
-                    if (document.__Instance == IntPtr.Zero)
-                        throw new InvalidDataException("PDFium rejected this PDF; it might be damaged or password protected.");
-                    try
-                    {
-                        var pageCount = fpdfview.FPDF_GetPageCount(document);
-                        if (pageCount is <= 0 or > 100 || pageIndex < 0 || pageIndex >= pageCount)
-                            throw new InvalidDataException("PDF page count is outside the configured worker limit.");
-                        return new PdfPreview(pageCount, Render(document, pageIndex, maximumScale));
-                    }
-                    finally
-                    {
-                        fpdfview.FPDF_CloseDocument(document);
-                    }
-                }
+                fpdfview.FPDF_InitLibrary();
+                _initialized = true;
             }
         }
-        finally
+        unsafe
         {
-            System.Security.Cryptography.CryptographicOperations.ZeroMemory(bytes);
+            fixed (byte* pointer = source)
+            {
+                var document = fpdfview.FPDF_LoadMemDocument(new IntPtr(pointer), source.Length, null);
+                if (document.__Instance == IntPtr.Zero)
+                    throw new InvalidDataException("PDFium rejected this PDF; it might be damaged or password protected.");
+                try
+                {
+                    var pageCount = fpdfview.FPDF_GetPageCount(document);
+                    if (pageCount is <= 0 or > 100 || pageIndex < 0 || pageIndex >= pageCount)
+                        throw new InvalidDataException("PDF page count is outside the configured worker limit.");
+                    return new PdfPreview(pageCount, Render(document, pageIndex, maximumScale));
+                }
+                finally
+                {
+                    fpdfview.FPDF_CloseDocument(document);
+                }
+            }
         }
     }
 

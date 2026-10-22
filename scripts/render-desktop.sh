@@ -96,6 +96,7 @@ export PDF_SANDBOX_TOKEN
 export SECREV_PDF_PARSER_ENDPOINT="http://127.0.0.1:5080"
 export SECREV_PDF_PARSER_TOKEN="$PDF_SANDBOX_TOKEN"
 export SECREV_PDF_SERVICES_MANAGED=1
+export SECREV_PDF_PARSER_LAUNCHER="$PDF_STATE/start-parser.sh"
 
 start_pdf_services() {
   cat > "$PDF_STATE/freshclam.conf" <<EOF
@@ -133,11 +134,16 @@ EOF
     [[ "$attempt" == 3 ]] && { echo "ClamAV signature download failed; PDF scanning stays unavailable."; return 0; }
     sleep 15
   done
-  # clamd is started by the parser per scan and stopped when idle, so its ~1 GB is not held while idle.
-  ENABLE_LOCAL_CLAMAV=true CLAMAV_ONDEMAND_CONF="$PDF_STATE/clamd.conf" CLAMAV_BINARY="$(command -v clamd)" CLAMAV_HOST=127.0.0.1 CLAMAV_PORT=3310 \
-    TESSERACT_PATH=/usr/bin/tesseract TMPDIR="$PDF_STATE/tmp" \
-    DOTNET_GCHeapHardLimit=0x10000000 DOTNET_GCConserveMemory=9 DOTNET_gcConcurrent=0 DOTNET_TieredPGO=0 MALLOC_ARENA_MAX=2 \
-    dotnet /opt/pdf-sandbox/PdfSandbox.dll --urls "$SECREV_PDF_PARSER_ENDPOINT" >"$PDF_STATE/parser.log" 2>&1 &
+  # The parser is not started here. The app launches it per upload (start-parser.sh) and it exits 5 s after the
+  # last upload; it starts clamd only for the scan, so neither holds memory while idle.
+  cat > "$PDF_STATE/start-parser.sh" <<EOF
+#!/usr/bin/env bash
+export ENABLE_LOCAL_CLAMAV=true PDF_PARSER_IDLE_EXIT=1 CLAMAV_ONDEMAND_CONF="$PDF_STATE/clamd.conf" CLAMAV_BINARY="$(command -v clamd)"
+export CLAMAV_HOST=127.0.0.1 CLAMAV_PORT=3310 TESSERACT_PATH=/usr/bin/tesseract TMPDIR="$PDF_STATE/tmp"
+export DOTNET_GCHeapHardLimit=0x10000000 DOTNET_GCConserveMemory=9 DOTNET_gcConcurrent=0 DOTNET_TieredPGO=0 MALLOC_ARENA_MAX=2
+exec dotnet /opt/pdf-sandbox/PdfSandbox.dll --urls "$SECREV_PDF_PARSER_ENDPOINT" >>"$PDF_STATE/parser.log" 2>&1
+EOF
+  chmod 700 "$PDF_STATE/start-parser.sh"
 }
 start_pdf_services &
 

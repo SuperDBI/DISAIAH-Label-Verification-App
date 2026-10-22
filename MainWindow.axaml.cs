@@ -57,6 +57,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _localPdfParser.RestartParserAsync = EnsureLocalPdfServicesAsync;
         AttachRuntimeProtections(this);
         ClipboardProtectionStatus.Text = "Active: copy, cut, and paste shortcuts and context menus are blocked inside SecRev TextBoxes. Clipboard contents are never read.";
         RuntimeLogList.ItemsSource = _runtimeLog.Entries;
@@ -144,20 +145,58 @@ public partial class MainWindow : Window
                token is { Length: >= 32 };
     }
 
+    private static async Task<bool> IsParserReadyAsync(string endpoint)
+    {
+        try
+        {
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+            using var response = await client.GetAsync(endpoint + "/health/ready");
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) { return false; }
+    }
+
+    private readonly System.Threading.SemaphoreSlim _parserLaunchLock = new(1, 1);
+
+    // Hosted container: the parser is launched per upload and exits by itself shortly after, which keeps its RAM free between uploads.
+    private async Task StartManagedParserAsync(string endpoint)
+    {
+        await _parserLaunchLock.WaitAsync();
+        try
+        {
+            if (await IsParserReadyAsync(endpoint)) return;
+            var launcher = Environment.GetEnvironmentVariable("SECREV_PDF_PARSER_LAUNCHER");
+            if (string.IsNullOrWhiteSpace(launcher) || !File.Exists(launcher))
+                throw new InvalidOperationException("The container's PDF/ClamAV services are still starting (virus signatures download on each start). Retry in a minute or two.");
+            using (var process = Process.Start(new ProcessStartInfo { FileName = launcher, UseShellExecute = false, CreateNoWindow = true }))
+            {
+                if (process is null) throw new InvalidOperationException("The local PDF parser could not be started.");
+            }
+            var deadline = DateTime.UtcNow.AddSeconds(60);
+            while (DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(500);
+                if (await IsParserReadyAsync(endpoint)) return;
+            }
+            throw new InvalidOperationException("The local PDF parser did not become ready in time. Try the upload again.");
+        }
+        finally
+        {
+            _parserLaunchLock.Release();
+        }
+    }
+
     private async Task EnsureLocalPdfServicesAsync()
     {
         if (IsLocalPdfParserConfigured())
         {
             var endpoint = Environment.GetEnvironmentVariable("SECREV_PDF_PARSER_ENDPOINT")!.TrimEnd('/');
-            try
-            {
-                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
-                        using var response = await client.GetAsync(endpoint + "/health/ready");
-                if (response.IsSuccessStatusCode) return;
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) { }
+            if (await IsParserReadyAsync(endpoint)) return;
             if (Environment.GetEnvironmentVariable("SECREV_PDF_SERVICES_MANAGED") == "1")
-                throw new InvalidOperationException("The container's PDF/ClamAV services are still starting (virus signatures download on each start). Retry in a minute or two.");
+            {
+                await StartManagedParserAsync(endpoint);
+                return;
+            }
             Environment.SetEnvironmentVariable("SECREV_PDF_PARSER_ENDPOINT", null);
             Environment.SetEnvironmentVariable("SECREV_PDF_PARSER_TOKEN", null);
         }

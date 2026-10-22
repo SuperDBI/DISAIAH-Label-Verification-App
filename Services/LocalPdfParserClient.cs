@@ -23,7 +23,49 @@ internal sealed class LocalPdfParserClient : IDisposable
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
     private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromMinutes(2) };
 
+    // Called when the on-demand parser has already idled out between the readiness check and the upload.
+    public Func<Task>? RestartParserAsync { get; set; }
+
+    private async Task<HttpResponseMessage> SendPdfAsync(Uri requestUri, byte[] pdfBytes, string token, CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            using var content = new ByteArrayContent(pdfBytes);
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+            using var request = new HttpRequestMessage(HttpMethod.Post, requestUri) { Content = content };
+            if (!request.Headers.TryAddWithoutValidation("X-SecRev-Sandbox-Token", token))
+                throw new InvalidOperationException("The local parser authentication header could not be configured.");
+            try
+            {
+                return await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            }
+            catch (HttpRequestException) when (attempt == 0 && RestartParserAsync is not null)
+            {
+                await RestartParserAsync();
+            }
+        }
+    }
+
     public async Task<LocalPdfImageExtractionResult> ScanAndExtractImagesAsync(byte[] pdfBytes, CancellationToken cancellationToken = default)
+    {
+        try { return await ScanAndExtractImagesCoreAsync(pdfBytes, cancellationToken); }
+        finally { ReleaseMemory(); }
+    }
+
+    public async Task<LocalPdfReviewResult> ScanAndExtractReviewAsync(byte[] pdfBytes, CancellationToken cancellationToken = default)
+    {
+        try { return await ScanAndExtractReviewCoreAsync(pdfBytes, cancellationToken); }
+        finally { ReleaseMemory(); }
+    }
+
+    // Large PDF and response buffers live on the large-object heap; compact it so the container gets the RAM back now.
+    private static void ReleaseMemory()
+    {
+        System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+    }
+
+    private async Task<LocalPdfImageExtractionResult> ScanAndExtractImagesCoreAsync(byte[] pdfBytes, CancellationToken cancellationToken)
     {
         var endpointValue = Environment.GetEnvironmentVariable("SECREV_PDF_PARSER_ENDPOINT");
         var token = Environment.GetEnvironmentVariable("SECREV_PDF_PARSER_TOKEN");
@@ -39,12 +81,7 @@ internal sealed class LocalPdfParserClient : IDisposable
             throw new InvalidDataException("PDF size exceeds the local parser limit.");
 
         var requestUri = new Uri(new Uri(endpoint.AbsoluteUri.TrimEnd('/') + "/"), "local/scan-and-extract-pdf-images");
-        using var content = new ByteArrayContent(pdfBytes);
-        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
-        using var request = new HttpRequestMessage(HttpMethod.Post, requestUri) { Content = content };
-        if (!request.Headers.TryAddWithoutValidation("X-SecRev-Sandbox-Token", token))
-            throw new InvalidOperationException("The local parser authentication header could not be configured.");
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        using var response = await SendPdfAsync(requestUri, pdfBytes, token, cancellationToken);
         if (!response.IsSuccessStatusCode)
             throw new InvalidDataException($"The local scanner/parser returned HTTP {(int)response.StatusCode}; extraction was not accepted.");
         if (response.Content.Headers.ContentLength is > MaximumResponseBytes)
@@ -69,10 +106,10 @@ internal sealed class LocalPdfParserClient : IDisposable
             CryptographicOperations.ZeroMemory(buffer);
         }
 
-        var responseBytes = output.ToArray();
+        var responseBytes = output.GetBuffer();
         try
         {
-            var result = JsonSerializer.Deserialize<ParserResponse>(responseBytes, JsonOptions)
+            var result = JsonSerializer.Deserialize<ParserResponse>(responseBytes.AsSpan(0, (int)output.Length), JsonOptions)
                 ?? throw new InvalidDataException("The local parser returned an empty response.");
             if (result.Images is null || result.PageCount is < 0 or > 100 || result.Images.Length > MaximumImages ||
                 result.Images.Any(image => image?.OcrText is { Length: > 20_000 }))
@@ -144,7 +181,7 @@ internal sealed class LocalPdfParserClient : IDisposable
         }
     }
 
-    public async Task<LocalPdfReviewResult> ScanAndExtractReviewAsync(byte[] pdfBytes, CancellationToken cancellationToken = default)
+    private async Task<LocalPdfReviewResult> ScanAndExtractReviewCoreAsync(byte[] pdfBytes, CancellationToken cancellationToken)
     {
         var endpoint = GetConfiguredEndpoint();
         var token = GetConfiguredToken();
@@ -152,12 +189,7 @@ internal sealed class LocalPdfParserClient : IDisposable
             throw new InvalidDataException("PDF size exceeds the local parser limit.");
 
         var uri = new Uri(new Uri(endpoint.AbsoluteUri.TrimEnd('/') + "/"), "local/scan-and-extract-pdf-review");
-        using var content = new ByteArrayContent(pdfBytes);
-        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
-        using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = content };
-        if (!request.Headers.TryAddWithoutValidation("X-SecRev-Sandbox-Token", token))
-            throw new InvalidOperationException("The local parser authentication header could not be configured.");
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        using var response = await SendPdfAsync(uri, pdfBytes, token, cancellationToken);
         if (!response.IsSuccessStatusCode)
             throw new InvalidDataException($"The local scanner/parser returned HTTP {(int)response.StatusCode}; extraction was not accepted.");
 
