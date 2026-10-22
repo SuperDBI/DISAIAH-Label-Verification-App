@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <Compile Remove="Azure/**/*.cs" />
     <Compile Remove="Tests/**/*.cs" />
     <Compile Remove="tools/**/*.cs" />
