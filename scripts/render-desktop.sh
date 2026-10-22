@@ -103,6 +103,8 @@ DatabaseDirectory $PDF_STATE/database
 DatabaseMirror database.clamav.net
 Foreground yes
 Checks 1
+# Skip freshclam's test-load of the whole database, which briefly needs as much RAM as clamd itself.
+TestDatabases no
 EOF
   cat > "$PDF_STATE/clamd.conf" <<EOF
 DatabaseDirectory $PDF_STATE/database
@@ -113,8 +115,8 @@ TCPAddr 127.0.0.1
 StreamMaxLength 30M
 MaxFileSize 30M
 MaxScanSize 100M
-MaxThreads 2
-MaxQueue 4
+MaxThreads 1
+MaxQueue 2
 ConcurrentDatabaseReload no
 DetectPUA no
 ScanArchive no
@@ -138,16 +140,22 @@ EOF
   done
   ENABLE_LOCAL_CLAMAV=true CLAMAV_HOST=127.0.0.1 CLAMAV_PORT=3310 \
     TESSERACT_PATH=/usr/bin/tesseract TMPDIR="$PDF_STATE/tmp" \
-    DOTNET_GCHeapHardLimit=0x20000000 DOTNET_GCConserveMemory=7 DOTNET_TieredPGO=0 \
+    DOTNET_GCHeapHardLimit=0x10000000 DOTNET_GCConserveMemory=9 DOTNET_gcConcurrent=0 DOTNET_TieredPGO=0 MALLOC_ARENA_MAX=2 \
     dotnet /opt/pdf-sandbox/PdfSandbox.dll --urls "$SECREV_PDF_PARSER_ENDPOINT" >"$PDF_STATE/parser.log" 2>&1 &
 }
 start_pdf_services &
+
+# Memory budget log (RSS per process) so the Runtime Logs show who uses the 2 GB.
+( while true; do
+    sleep 60
+    echo "mem: $(ps -eo rss,comm --sort=-rss | awk 'NR>1 && NR<=7 {printf "%s=%dMB ", $2, $1/1024}')"
+  done ) &
 
 # Relaunch the app if it is closed so the browser never shows an empty desktop.
 while true; do
   # Per-process GC caps: .NET otherwise sizes each process against the whole container limit.
   code=0
-  DOTNET_GCHeapHardLimit=0x60000000 DOTNET_GCConserveMemory=5 DOTNET_TieredPGO=0 dotnet /app/SecRev.dll || code=$?
+  DOTNET_GCHeapHardLimit=0x18000000 DOTNET_GCConserveMemory=9 DOTNET_gcConcurrent=0 DOTNET_TieredPGO=0 MALLOC_ARENA_MAX=2 dotnet /app/SecRev.dll || code=$?
   echo "SecRev exited with code $code (137 = killed, usually out of memory). Memory: $(free -m | awk 'NR==2{print $3"/"$2" MB used"}')"
   sleep 1
 done
